@@ -1,0 +1,22 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model City {
+  id           Int      @id @default(autoincrement())
+  // ID của thành phố theo OpenWeatherMap
+  owmId        Int      @unique
+  name         String
+  country      String
+  lat          Float
+  lon          Float
+  timezone     Int      // giây lệch múi giờ so với UTC
+  lastWeather  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
