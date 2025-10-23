@@ -29,7 +29,7 @@ export type OpenWeatherResponse = {
 
 const API_BASE = process.env.OW_BASE_URL;
 const apiKey = process.env.OW_API_KEY;
-const CACHE_TTL = 60 * 20; // 20 minutes
+const CACHE_TTL = Number(process.env.CACHE_TTL); // 20 minutes
 
 export const getWeatherByLatLon = async (lat: number, lon: number): Promise<OpenWeatherResponse> => {
   if (!apiKey) {
