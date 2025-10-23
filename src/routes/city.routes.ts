@@ -1,13 +1,15 @@
 import { Router } from "express";
 import {
-	listCities,
-	saveCity,
 	getCityDetail,
-	refreshCityWeather,
-	getWeatherByName,
 	getWeatherById,
+	getWeatherByName,
+	getWeatherCityByLatLon,
+	listCities,
+	refreshCityWeather,
+	saveCity,
 	unsaveCity,
 } from "../controllers/city.controller.js";
+import { cacheWeatherByCityIdMiddleware, cacheWeatherByCityNameMiddleware, cacheWeatherByLatLonMiddleware } from "../middleware/index.js";
 
 const router = Router();
 
@@ -22,8 +24,10 @@ router.get("/:id", getCityDetail);
 // Làm mới thời tiết cho 1 thành phố đã lưu theo id (id trong DB)
 router.post("/:id/refresh", refreshCityWeather);
 // Lấy thời tiết trực tiếp theo tên (không lưu)
-router.get("/by-name/:name/weather", getWeatherByName);
+router.get("/by-name/:name/weather", cacheWeatherByCityNameMiddleware, getWeatherByName);
+// Lấy thời tiết trực tiếp theo tọa độ lat/lon (không lưu)
+router.get("/by-lat-lon/:lat/:lon/weather", cacheWeatherByLatLonMiddleware, getWeatherCityByLatLon);
 // Lấy thời tiết trực tiếp theo owmId (không lưu)
-router.get("/by-id/:owmId/weather", getWeatherById);
+router.get("/by-id/:owmId/weather", cacheWeatherByCityIdMiddleware, getWeatherById);
 
 export default router;

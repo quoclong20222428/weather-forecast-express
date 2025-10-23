@@ -1,5 +1,6 @@
 import axios from "axios";
 import { prisma } from "../config/db.js";
+import { initializeRedisClient } from "../utils/redisClient.js";
 
 export type OpenWeatherResponse = {
   coord: { lon: number; lat: number };
@@ -27,19 +28,36 @@ export type OpenWeatherResponse = {
 };
 
 const API_BASE = process.env.OW_BASE_URL;
+const apiKey = process.env.OW_API_KEY;
+const CACHE_TTL = 60 * 20; // 20 minutes
+
+export const getWeatherByLatLon = async (lat: number, lon: number): Promise<OpenWeatherResponse> => {
+  if (!apiKey) {
+    throw new Error("Missing OPENWEATHERMAP_API_KEY in environment");
+  }
+  const url = `${API_BASE}/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=vi`;
+  const res = await axios.get<OpenWeatherResponse>(url);
+  // Lưu lại vào Redis sau khi fetch thành công
+  const redisClient = await initializeRedisClient();
+  const cacheKey = `weather:latlon:${lat}:${lon}`;
+  await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  return res.data;
+}
 
 export const getWeatherByCity = async (city: string): Promise<OpenWeatherResponse> => {
-  const apiKey = process.env.OW_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENWEATHERMAP_API_KEY in environment");
   }
   const url = `${API_BASE}/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric&lang=vi`;
   const res = await axios.get<OpenWeatherResponse>(url);
+  // Lưu lại vào Redis sau khi fetch thành công
+  const redisClient = await initializeRedisClient();
+  const cacheKey = `weather:${city.toLowerCase()}`;
+  await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
   return res.data;
 };
 
 export const getWeatherByCityId = async (owmId: number): Promise<OpenWeatherResponse> => {
-  const apiKey = process.env.OW_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENWEATHERMAP_API_KEY in environment");
   }
