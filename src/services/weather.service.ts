@@ -1,6 +1,7 @@
 import axios from "axios";
 import { prisma } from "../config/db.js";
 import { initializeRedisClient } from "../utils/redisClient.js";
+// import { log } from "console";
 
 export type OpenWeatherResponse = {
   coord: { lon: number; lat: number };
@@ -36,6 +37,7 @@ const getRandomizedCacheTTL = (min: number, max: number): number => {
 const API_BASE = process.env.OW_BASE_URL;
 const apiKey = process.env.OW_API_KEY;
 const CACHE_TTL = getRandomizedCacheTTL(-20, 20); // get a TTL with randomization between -20 and +20 seconds
+
 
 export const getWeatherByLatLon = async (lat: number, lon: number): Promise<OpenWeatherResponse> => {
   if (!apiKey) {
@@ -124,17 +126,23 @@ export const upsertCityFromWeather = async (data: OpenWeatherResponse) => {
 
 export const saveCityByName = async (name: string) => {
   const weather = await getWeatherByCity(name);
-  return upsertCityFromWeather(weather);
+  const city = await upsertCityFromWeather(weather)
+  // return upsertCityFromWeather(weather);
+
+  const redisClient = await initializeRedisClient();
+  await redisClient.del("cities:saved");
+  return city;
 };
 
 export const unsaveCityByName = async (name: string) => {
   const db = prisma as any;
   const existing = await db.city.findFirst({ where: { name } });
   if (!existing) throw new Error("City not found");
-  return db.city.delete({ where: { id: existing.id } });
-}
 
-export const getSavedCities = () => (prisma as any).city.findMany({ orderBy: { updatedAt: "desc" } });
+  return db.city.delete({ where: { id: existing.id } });
+};
+
+export const getSavedCities = () => (prisma as any).city.findMany({ orderBy: { updatedAt: "desc" } }); 
 
 export const getCityById = (id: number) => prisma.city.findUnique({ where: { id } });
 

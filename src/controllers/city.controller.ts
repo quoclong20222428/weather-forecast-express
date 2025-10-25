@@ -10,6 +10,8 @@ import {
   getWeatherByLatLon,
 } from "../services/weather.service.js";
 import { HttpError } from "../middleware/index.js";
+import { initializeRedisClient } from "../utils/redisClient.js";
+import { prisma } from "../config/db.js";
 
 export const listCities = async (_req: Request, res: Response) => {
   const cities = await getSavedCities();
@@ -57,11 +59,33 @@ export const getCityDetail = async (req: Request, res: Response, next: NextFunct
   if (Number.isNaN(id)) {
     return next(new HttpError(400, "Invalid id"));
   }
-  const city = await getCityById(id);
-  if (!city) {
-    return next(new HttpError(404, "City not found"));
+
+  try {
+    const redisClient = await initializeRedisClient();
+    const cacheKey = `city:${id}`;
+
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      console.log(`Cache hit: city ${id}`);
+      return res.json(JSON.parse(cached));
+    }
+
+    const city = await getCityById(id);
+    if ( !city ) {
+      return next(new HttpError(404, "City not found"));
+    }
+
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(city));
+
+    res.json(city);
+  } catch (err) {
+    return next(err);
   }
-  res.json(city);
+  // const city = await getCityById(id);
+  // if (!city) {
+  //   return next(new HttpError(404, "City not found"));
+  // }
+  // res.json(city);
 };
 
 export const refreshCityWeather = async (req: Request, res: Response, next: NextFunction) => {
@@ -138,5 +162,104 @@ export const getWeatherById = async (req: Request, res: Response, next: NextFunc
       return next(new HttpError(statusCode, err.message));
     }
     return next(err);
+  }
+};
+
+const CACHE_KEY = "cities:all";
+const CACHE_TTL = 3600; // 1 giờ
+
+export const getAllCities = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const redisClient = await initializeRedisClient();
+
+    // Luôn lấy dữ liệu mới từ DB
+    const cities = await prisma.city.findMany();
+    
+    // Cập nhật cache với dữ liệu mới
+    await redisClient.setEx(CACHE_KEY, CACHE_TTL, JSON.stringify(cities));
+
+    return res.json(cities);
+  } catch (err) {
+    console.error("Error in getAllCities:", err);
+    return next(new HttpError(500, "Failed to fetch all cities"));
+  }
+};
+
+// POST /api/cities
+export const createCity = async (req: Request, res: Response, next: NextFunction) => {
+  const { name, country, lat, lon } = req.body;
+  if (!name || !country || lat == null || lon == null) {
+    return next(new HttpError(400, "Missing required fields"));
+  }
+
+  try {
+    // Start transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create new city
+      const newCity = await tx.city.create({
+        data: { name, country, lat, lon, owmId: 0, timezone: 0 },
+      });
+
+      // 2. Get updated list of all cities
+      const allCities = await tx.city.findMany();
+      
+      return { newCity, allCities };
+    });
+
+    // 3. Update cache after transaction completes successfully
+    const redisClient = await initializeRedisClient();
+    await redisClient.setEx(CACHE_KEY, CACHE_TTL, JSON.stringify(result.allCities));
+
+    return res.status(201).json(result.newCity);
+  } catch (err) {
+    console.error("Error in createCity:", err);
+    return next(new HttpError(500, "Failed to create city"));
+  }
+};
+
+// DELETE /api/cities/:id
+export const deleteCity = async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.params;
+  const idNum = Number(id);
+
+  if (Number.isNaN(idNum)) {
+    return next(new HttpError(400, "Invalid city id"));
+  }
+
+  try {
+    // Thực hiện transaction để đảm bảo tính nhất quán
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Xóa city
+      await tx.city.delete({ 
+        where: { id: idNum } 
+      });
+
+      // 2. Lấy danh sách cities mới
+      const remainingCities = await tx.city.findMany();
+
+      return { remainingCities };
+    });
+
+    // 3. Cập nhật cache sau khi transaction thành công
+    const redisClient = await initializeRedisClient();
+    
+    // Cập nhật cache danh sách cities
+    await redisClient.setEx(CACHE_KEY, CACHE_TTL, JSON.stringify(result.remainingCities));
+    
+    // Xóa cache chi tiết của city vừa xóa
+    await redisClient.del(`city:${id}`);
+
+    return res.json({ 
+      message: "City deleted successfully",
+      remainingCities: result.remainingCities 
+    });
+
+  } catch (err) {
+    console.error("Error in deleteCity:", err);
+    // Nếu không tìm thấy city để xóa, Prisma sẽ throw RecordNotFound
+    if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'P2025') {
+      return next(new HttpError(404, "City not found"));
+    }
+    return next(new HttpError(500, "Failed to delete city"));
   }
 };
