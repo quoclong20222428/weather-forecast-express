@@ -27,9 +27,15 @@ export type OpenWeatherResponse = {
   cod: number;
 };
 
+const getRandomizedCacheTTL = (min: number, max: number): number => {
+  const baseTTL = Number(process.env.CACHE_TTL);
+  const jitter = Math.floor(Math.random() * (max - min + 1)) + min;
+  return baseTTL + jitter;
+}
+
 const API_BASE = process.env.OW_BASE_URL;
 const apiKey = process.env.OW_API_KEY;
-const CACHE_TTL = Number(process.env.CACHE_TTL); // 20 minutes
+const CACHE_TTL = getRandomizedCacheTTL(-20, 20); // get a TTL with randomization between -20 and +20 seconds
 
 export const getWeatherByLatLon = async (lat: number, lon: number): Promise<OpenWeatherResponse> => {
   if (!apiKey) {
@@ -40,7 +46,13 @@ export const getWeatherByLatLon = async (lat: number, lon: number): Promise<Open
   // Lưu lại vào Redis sau khi fetch thành công
   const redisClient = await initializeRedisClient();
   const cacheKey = `weather:latlon:${lat}:${lon}`;
-  await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  if (!res.data) {
+    const extraTTL = CACHE_TTL + 600; // cache not found result for more 10 minutes
+    await redisClient.setEx(cacheKey, extraTTL, JSON.stringify({ notFound: true }));
+  }
+  else {
+    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  }
   return res.data;
 }
 
@@ -53,7 +65,13 @@ export const getWeatherByCity = async (city: string): Promise<OpenWeatherRespons
   // Lưu lại vào Redis sau khi fetch thành công
   const redisClient = await initializeRedisClient();
   const cacheKey = `weather:${city.toLowerCase()}`;
-  await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  if (!res.data) {
+    const extraTTL = CACHE_TTL + 600; // cache not found result for more 10 minutes
+    await redisClient.setEx(cacheKey, extraTTL, JSON.stringify({ notFound: true }));
+  }
+  else {
+    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  }
   return res.data;
 };
 
@@ -63,6 +81,15 @@ export const getWeatherByCityId = async (owmId: number): Promise<OpenWeatherResp
   }
   const url = `${API_BASE}/weather?id=${owmId}&appid=${apiKey}&units=metric`;
   const res = await axios.get<OpenWeatherResponse>(url);
+  const redisClient = await initializeRedisClient();
+  const cacheKey = `weather:id:${owmId}`;
+  if (!res.data) {
+    const extraTTL = CACHE_TTL + 600; // cache not found result for more 10 minutes
+    await redisClient.setEx(cacheKey, extraTTL, JSON.stringify({ notFound: true }));
+  }
+  else {
+    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+  }
   return res.data;
 };
 

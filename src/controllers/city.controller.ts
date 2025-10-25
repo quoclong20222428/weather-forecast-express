@@ -74,7 +74,9 @@ export const refreshCityWeather = async (req: Request, res: Response, next: Next
     res.json(result);
   } catch (err) {
     if (err instanceof Error) {
-      const statusCode = err.message === "City not found" ? 404 : 500;
+      const msg = err.message.toLowerCase();
+      const statusCode =
+        msg.includes("404") || msg.includes("city not found") ? 404 : 400;
       return next(new HttpError(statusCode, err.message));
     }
     return next(err);
@@ -86,7 +88,7 @@ export const getWeatherCityByLatLon = async (req: Request, res: Response, next: 
   const latNum = Number(lat);
   const lonNum = Number(lon);
 
-  if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
+  if (Number.isNaN(latNum) || Number.isNaN(lonNum) || latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
     return next(new HttpError(400, "Invalid latitude or longitude"));
   }
 
@@ -95,7 +97,9 @@ export const getWeatherCityByLatLon = async (req: Request, res: Response, next: 
     res.json(weather);
   } catch (error) {
     if (error instanceof Error) {
-      const statusCode = error.message === "City not found" ? 404 : 500;
+      const msg = error.message.toLowerCase();
+      const statusCode =
+        msg.includes("404") || msg.includes("city not found") ? 404 : 400;
       return next(new HttpError(statusCode, error.message));
     }
     return next(error);
@@ -109,7 +113,9 @@ export const getWeatherByName = async (req: Request, res: Response, next: NextFu
     res.json(weather);
   } catch (err) {
     if (err instanceof Error) {
-      const statusCode = err.message === "City not found" ? 404 : 400;
+      const msg = err.message.toLowerCase();
+      const statusCode =
+        msg.includes("404") || msg.includes("city not found") ? 404 : 400;
       return next(new HttpError(statusCode, err.message));
     }
     return next(err);
@@ -126,7 +132,9 @@ export const getWeatherById = async (req: Request, res: Response, next: NextFunc
     res.json(weather);
   } catch (err) {
     if (err instanceof Error) {
-      const statusCode = err.message === "City not found" ? 404 : 400;
+      const msg = err.message.toLowerCase();
+      const statusCode =
+        msg.includes("404") || msg.includes("city not found") ? 404 : 400;
       return next(new HttpError(statusCode, err.message));
     }
     return next(err);
