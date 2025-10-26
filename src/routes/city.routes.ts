@@ -17,7 +17,7 @@ import {
   cacheWeatherByCityNameMiddleware, 
   cacheWeatherByLatLonMiddleware 
 } from "../middleware/index.js";
-
+import { cacheCityByIdMiddleware } from "../middleware/cacheCityById.js";
 const router = Router();
 
 /* --------------------- Route cố định --------------------- */
@@ -47,7 +47,9 @@ router.post("/", createCity);
 router.post("/:id/refresh", refreshCityWeather);
 
 // Chi tiết 1 thành phố đã lưu
-router.get("/:id", getCityDetail);
+// router.get("/:id", getCityDetail);
+
+router.get('/:id', cacheCityByIdMiddleware, getCityDetail);
 
 // Xóa thành phố đã lưu
 router.delete("/", unsaveCity);
