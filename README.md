@@ -19,7 +19,7 @@ Xây dựng với Express + TypeScript + Prisma + Redis, tích hợp OpenWeather
 
 ## 📋 Mục lục
 
-<table>
+<table align="center">
 <tr>
 <td width="50%">
 
