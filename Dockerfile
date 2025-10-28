@@ -1,5 +1,5 @@
 # --- Giai đoạn 1: Build TypeScript ---
-FROM node:18 AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # --- Giai đoạn 2: Run Production ---
-FROM node:18
+FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
@@ -23,4 +23,4 @@ EXPOSE 5001
 # Generate Prisma client trong container
 RUN npx prisma generate
 
-CMD ["node", "dist/server.js"]
+CMD ["npm", "run", "start"]
