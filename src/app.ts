@@ -1,4 +1,4 @@
-import express, { Application } from "express";
+import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cityRoutes from "./routes/city.routes.js";
@@ -16,6 +16,10 @@ app.use(
 		credentials: true,
 	})
 );
+
+app.get("/", (req: Request, res: Response) => {
+	res.send("Weather Forecast API is running");
+});
 
 app.use("/api/cities", cityRoutes);
 
