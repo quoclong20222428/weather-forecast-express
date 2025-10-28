@@ -1,6 +1,8 @@
+version: "3.9"
+
 services:
   postgres:
-    image: postgres
+    image: postgres:16
     container_name: weather_postgres
     restart: always
     environment:
@@ -13,6 +15,39 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: weather_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    container_name: weather_api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             node dist/server.js"
 
 volumes:
   postgres_data:

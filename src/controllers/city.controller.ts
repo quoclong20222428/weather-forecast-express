@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
+
 import {
   getWeatherByCity,
   getWeatherByCityId,
@@ -194,7 +196,7 @@ export const createCity = async (req: Request, res: Response, next: NextFunction
 
   try {
     // Start transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Create new city
       const newCity = await tx.city.create({
         data: { name, country, lat, lon, owmId: 0, timezone: 0 },
@@ -228,7 +230,7 @@ export const deleteCity = async (req: Request, res: Response, next: NextFunction
 
   try {
     // Thực hiện transaction để đảm bảo tính nhất quán
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Xóa city
       await tx.city.delete({ 
         where: { id: idNum } 
