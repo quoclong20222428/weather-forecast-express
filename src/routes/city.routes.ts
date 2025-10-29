@@ -6,8 +6,8 @@ import {
   getWeatherCityByLatLon,
   listCities,
   refreshCityWeather,
-  saveCity,
-  unsaveCity,
+  // saveCity,
+  // unsaveCity,
   getAllCities,
   createCity,
   deleteCity,
@@ -34,27 +34,25 @@ router.get("/by-lat-lon/:lat/:lon/weather", cacheWeatherByLatLonMiddleware, getW
 router.get("/by-id/:owmId/weather", cacheWeatherByCityIdMiddleware, getWeatherById);
 
 // Danh sách thành phố đã lưu
-router.get("/", listCities);
+// router.get("/", listCities);
 
 /* --------------------- Route thao tác với thành phố --------------------- */
 // Lưu thành phố theo tên (gọi OpenWeather, map và lưu)
-router.post("/", saveCity);
+// router.post("/", saveCity);
 
 // Tạo thành phố mới
-router.post("/", createCity);
+router.post("/saved-city/:name/:country/:lat/:lon", createCity);
 
 // Làm mới thời tiết cho 1 thành phố đã lưu theo id (id trong DB)
 router.post("/:id/refresh", refreshCityWeather);
 
 // Chi tiết 1 thành phố đã lưu
-// router.get("/:id", getCityDetail);
-
-router.get('/:id', cacheCityByIdMiddleware, getCityDetail);
+router.get('/by-id/:id', cacheCityByIdMiddleware, getCityDetail);
 
 // Xóa thành phố đã lưu
-router.delete("/", unsaveCity);
+// router.delete("/by-id/:id", unsaveCity);
 
 // Xóa thành phố theo id
-router.delete("/:id", deleteCity);
+router.delete("/by-id/:id", deleteCity);
 
 export default router;

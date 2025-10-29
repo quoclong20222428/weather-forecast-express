@@ -20,41 +20,41 @@ export const listCities = async (_req: Request, res: Response) => {
   res.json(cities);
 };
 
-export const saveCity = async (req: Request, res: Response, next: NextFunction) => {
-  const { name } = req.body as { name?: string };
-  if (!name || !name.trim()) {
-    return next(new HttpError(400, "Missing city name"));
-  }
-  try {
-    const city = await saveCityByName(name.trim());
-    res.status(201).json(city);
-  } catch (err) {
-    if (err instanceof Error) {
-      return next(new HttpError(400, err.message));
-    }
-    return next(err);
-  }
-};
+// export const saveCity = async (req: Request, res: Response, next: NextFunction) => {
+//   const { name } = req.body as { name?: string };
+//   if (!name || !name.trim()) {
+//     return next(new HttpError(400, "Missing city name"));
+//   }
+//   try {
+//     const city = await saveCityByName(name.trim());
+//     res.status(201).json(city);
+//   } catch (err) {
+//     if (err instanceof Error) {
+//       return next(new HttpError(400, err.message));
+//     }
+//     return next(err);
+//   }
+// };
 
-export const unsaveCity = async (req: Request, res: Response, next: NextFunction) => {
-  const { name } = req.body as { name?: string };
-  if (!name || !name.trim()) {
-    return next(new HttpError(400, "Missing city name"));
-  }
-  try {
-    const city = await unsaveCityByName(name.trim());
-    if (!city) {
-      return next(new HttpError(404, "City not found"));
-    }
-    res.status(200).json({ message: "City was unsaved" });
-  } catch (err) {
-    if (err instanceof Error) {
-      const statusCode = err.message === "City not found" ? 404 : 500;
-      return next(new HttpError(statusCode, err.message));
-    }
-    return next(err);
-  }
-}
+// export const unsaveCity = async (req: Request, res: Response, next: NextFunction) => {
+//   const { name } = req.body as { name?: string };
+//   if (!name || !name.trim()) {
+//     return next(new HttpError(400, "Missing city name"));
+//   }
+//   try {
+//     const city = await unsaveCityByName(name.trim());
+//     if (!city) {
+//       return next(new HttpError(404, "City not found"));
+//     }
+//     res.status(200).json({ message: "City was unsaved" });
+//   } catch (err) {
+//     if (err instanceof Error) {
+//       const statusCode = err.message === "City not found" ? 404 : 500;
+//       return next(new HttpError(statusCode, err.message));
+//     }
+//     return next(err);
+//   }
+// }
 
 export const getCityDetail = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);

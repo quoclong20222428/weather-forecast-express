@@ -79,14 +79,19 @@ Weather Forecast Express là một Backend REST API được xây dựng để p
 - Lấy thời tiết theo OpenWeather City ID
 - Làm mới dữ liệu thời tiết cho thành phố đã lưu
 
-### Tìm kiếm & Gợi ý
-- Tìm kiếm thành phố thông qua OpenWeather Geocoding API
-- Gợi ý tự động khi nhập tên thành phố
-
 ### Tối ưu hiệu suất
-- Cache dữ liệu thời tiết với Redis (TTL: 10 phút)
-- Giảm số lượng request tới OpenWeather API
-- Tăng tốc độ phản hồi cho người dùng
+- **Redis Caching**: Cache dữ liệu thời tiết với TTL 10 phút
+- **Smart Cache Keys**: Cache theo tên thành phố, tọa độ, và OpenWeather ID
+- **Cache Middleware**: Tự động cache cho tất cả weather endpoints
+- **Giảm API Calls**: Giảm thiểu số lượng request tới OpenWeather API
+- **Fast Response**: Tăng tốc độ phản hồi từ milliseconds thay vì seconds
+
+### Docker & Containerization
+- **Docker Compose**: Orchestration cho PostgreSQL, Redis và App
+- **Multi-container Setup**: Tách biệt services để dễ scale
+- **Volume Persistence**: Dữ liệu database được lưu trữ persistent
+- **Network Isolation**: Services giao tiếp qua Docker network
+- **Easy Deployment**: Một lệnh để start tất cả services
 
 ### Middleware & Logging
 - Request logging với thông tin chi tiết
@@ -306,7 +311,11 @@ npm start
 ### Kiểm tra server đang chạy:
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:5001/api/cities' -Method Get
+# Kiểm tra root endpoint
+Invoke-RestMethod -Uri 'http://localhost:5001/' -Method Get
+
+# Kiểm tra danh sách cities
+Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/all' -Method Get
 ```
 
 ## 📡 Tích hợp với OpenWeather API
@@ -318,7 +327,6 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 - **`/weather?q={city}`** - Lấy thời tiết theo tên thành phố
 - **`/weather?id={owmId}`** - Lấy thời tiết theo OpenWeather City ID
 - **`/weather?lat={lat}&lon={lon}`** - Lấy thời tiết theo tọa độ địa lý
-- **`/geo/1.0/direct?q={query}`** - Geocoding API (tìm kiếm và gợi ý thành phố)
 
 ### Xử lý dữ liệu:
 
@@ -334,21 +342,20 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 
 | Method | Endpoint | Mô tả | Cache |
 |--------|----------|-------|-------|
-| **GET** | `/api/cities` | Lấy danh sách tất cả thành phố đã lưu | ❌ |
-| **POST** | `/api/cities` | Thêm thành phố mới vào danh sách | ❌ |
-| **DELETE** | `/api/cities` | Xóa thành phố khỏi danh sách | ❌ |
-| **GET** | `/api/cities/:id` | Lấy chi tiết thành phố theo ID | ❌ |
-| **POST** | `/api/cities/:id/refresh` | Làm mới dữ liệu thời tiết cho thành phố | ✅ |
-| **GET** | `/api/cities/by-name/:name/weather` | Lấy thời tiết theo tên thành phố | ✅ |
-| **GET** | `/api/cities/by-id/:owmId/weather` | Lấy thời tiết theo OpenWeather City ID | ✅ |
-| **GET** | `/api/cities/by-coords/weather` | Lấy thời tiết theo tọa độ (lat, lon) | ✅ |
-| **GET** | `/api/cities/search` | Tìm kiếm và gợi ý thành phố | ❌ |
+| **GET** | `/api/cities/all` | Lấy danh sách tất cả thành phố đã lưu | ✅ |
+| **POST** | `/api/cities/saved-city/:name/:country/:lat/:lon` | Tạo thành phố mới vào danh sách | ❌ |
+| **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố theo ID | ❌ |
+| **GET** | `/api/cities/by-id/:id` | Lấy chi tiết thành phố theo ID | ✅ |
+| **POST** | `/api/cities/:id/refresh` | Làm mới dữ liệu thời tiết cho thành phố đã lưu | ❌ |
+| **GET** | `/api/cities/by-name/:name/weather` | Lấy thời tiết trực tiếp theo tên thành phố | ✅ |
+| **GET** | `/api/cities/by-id/:owmId/weather` | Lấy thời tiết trực tiếp theo OpenWeather City ID | ✅ |
+| **GET** | `/api/cities/by-lat-lon/:lat/:lon/weather` | Lấy thời tiết trực tiếp theo tọa độ (lat, lon) | ✅ |
 
 ### Chi tiết endpoints:
 
-#### 1. Lấy danh sách thành phố đã lưu
+#### 1. Lấy danh sách tất cả thành phố đã lưu
 ```http
-GET /api/cities
+GET /api/cities/all
 ```
 
 **Response:**
@@ -360,34 +367,111 @@ GET /api/cities
     "country": "VN",
     "lat": 10.8231,
     "lon": 106.6297,
+    "owmId": 1580578,
     "timezone": 25200,
     "lastWeather": { ... },
-    "createdAt": "2025-01-15T10:30:00Z"
+    "createdAt": "2025-01-15T10:30:00Z",
+    "updatedAt": "2025-01-15T10:30:00Z"
   }
 ]
 ```
 
-#### 2. Thêm thành phố mới
-```http
-POST /api/cities
-Content-Type: application/json
+**Cache:** Dữ liệu được cache với key `cities:all` (TTL: 1 giờ). Cache được tự động cập nhật khi tạo hoặc xóa thành phố.
 
+#### 2. Tạo thành phố mới
+```http
+POST /api/cities/saved-city/:name/:country/:lat/:lon
+```
+
+**Ví dụ:**
+```http
+POST /api/cities/saved-city/Hanoi/VN/21.0285/105.8542
+```
+
+**Response:**
+```json
 {
-  "name": "Hanoi"
+  "id": 2,
+  "name": "Hanoi",
+  "country": "VN",
+  "lat": 21.0285,
+  "lon": 105.8542,
+  "owmId": 0,
+  "timezone": 0,
+  "lastWeather": null,
+  "createdAt": "2025-01-15T11:00:00Z",
+  "updatedAt": "2025-01-15T11:00:00Z"
 }
 ```
 
-#### 3. Xóa thành phố
-```http
-DELETE /api/cities
-Content-Type: application/json
+**Note:** Endpoint này tạo thành phố mới và tự động cập nhật cache `cities:all`.
 
+#### 3. Xóa thành phố theo ID
+```http
+DELETE /api/cities/by-id/:id
+```
+
+**Ví dụ:**
+```http
+DELETE /api/cities/by-id/2
+```
+
+**Response:**
+```json
 {
-  "name": "Hanoi"
+  "message": "City deleted successfully",
+  "remainingCities": [...]
 }
 ```
 
-#### 4. Lấy thời tiết theo tên thành phố
+**Note:** Endpoint này xóa thành phố, xóa cache `city:{id}`, và cập nhật cache `cities:all`.
+
+#### 4. Lấy chi tiết thành phố theo ID
+```http
+GET /api/cities/by-id/:id
+```
+
+**Ví dụ:**
+```http
+GET /api/cities/by-id/1
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Ho Chi Minh City",
+  "country": "VN",
+  "lat": 10.8231,
+  "lon": 106.6297,
+  "owmId": 1580578,
+  "timezone": 25200,
+  "lastWeather": { ... },
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+**Cache:** Dữ liệu được cache với key `city:{id}` (TTL: 10 phút).
+
+#### 5. Làm mới thời tiết cho thành phố đã lưu
+```http
+POST /api/cities/:id/refresh
+```
+
+**Ví dụ:**
+```http
+POST /api/cities/1/refresh
+```
+
+**Response:** Trả về thành phố với dữ liệu thời tiết mới cập nhật trong `lastWeather`.
+
+#### 6. Lấy thời tiết trực tiếp theo tên thành phố
+```http
+GET /api/cities/by-name/:name/weather
+```
+
+**Ví dụ:**
 ```http
 GET /api/cities/by-name/Hanoi/weather
 ```
@@ -422,73 +506,93 @@ GET /api/cities/by-name/Hanoi/weather
 }
 ```
 
-#### 5. Lấy thời tiết theo tọa độ
+**Cache:** Dữ liệu được cache với key `weather:name:{name}` (TTL: 10 phút).
+
+#### 7. Lấy thời tiết trực tiếp theo OpenWeather City ID
 ```http
-GET /api/cities/by-coords/weather?lat=21.0285&lon=105.8542
+GET /api/cities/by-id/:owmId/weather
 ```
 
-#### 6. Tìm kiếm thành phố
+**Ví dụ:**
 ```http
-GET /api/cities/search?query=Ho%20Chi%20Minh
+GET /api/cities/by-id/1580578/weather
 ```
 
-**Response:**
-```json
-[
-  {
-    "name": "Ho Chi Minh City",
-    "lat": 10.8231,
-    "lon": 106.6297,
-    "country": "VN",
-    "state": "Ho Chi Minh"
-  }
-]
+**Cache:** Dữ liệu được cache với key `weather:id:{owmId}` (TTL: 10 phút).
+
+#### 8. Lấy thời tiết trực tiếp theo tọa độ
+```http
+GET /api/cities/by-lat-lon/:lat/:lon/weather
 ```
+
+**Ví dụ:**
+```http
+GET /api/cities/by-lat-lon/21.0285/105.8542/weather
+```
+
+**Cache:** Dữ liệu được cache với key `weather:latlon:{lat}:{lon}` (TTL: 10 phút).
 
 ## 🧪 Kiểm thử
 
 ### Kiểm thử bằng PowerShell
 
-#### 1. Thêm thành phố Hồ Chí Minh:
+#### 1. Tạo thành phố Hồ Chí Minh:
 ```powershell
-Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities' -ContentType 'application/json' -Body '{"name":"Ho Chi Minh City"}'
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities/saved-city/Ho Chi Minh City/VN/10.8231/106.6297'
 ```
 
-#### 2. Lấy danh sách thành phố đã lưu:
+#### 2. Lấy danh sách tất cả thành phố:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/all'
 ```
 
-#### 3. Lấy thời tiết theo tên thành phố:
+#### 3. Lấy chi tiết thành phố theo ID:
+```powershell
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-id/1'
+```
+
+#### 4. Lấy thời tiết theo tên thành phố:
 ```powershell
 Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather'
 ```
 
-#### 4. Lấy thời tiết theo tọa độ:
+#### 5. Lấy thời tiết theo tọa độ:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-coords/weather?lat=21.0285&lon=105.8542'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather'
 ```
 
-#### 5. Tìm kiếm thành phố:
+#### 6. Lấy thời tiết theo OpenWeather City ID:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/search?query=Ho%20Chi%20Minh'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-id/1581130/weather'
 ```
 
-#### 6. Xóa thành phố:
+#### 7. Làm mới thời tiết cho thành phố đã lưu:
 ```powershell
-Invoke-RestMethod -Method Delete -Uri 'http://localhost:5001/api/cities' -ContentType 'application/json' -Body '{"name":"Hanoi"}'
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities/1/refresh'
+```
+
+#### 8. Xóa thành phố theo ID:
+```powershell
+Invoke-RestMethod -Method Delete -Uri 'http://localhost:5001/api/cities/by-id/1'
 ```
 
 ### Kiểm thử với cURL (nếu có Git Bash hoặc WSL):
 
 ```bash
-# Thêm thành phố
-curl -X POST http://localhost:5001/api/cities \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Hanoi"}'
+# Tạo thành phố mới
+curl -X POST 'http://localhost:5001/api/cities/saved-city/Hanoi/VN/21.0285/105.8542'
 
-# Lấy thời tiết
+# Lấy danh sách tất cả thành phố
+curl http://localhost:5001/api/cities/all
+
+# Lấy thời tiết theo tên
 curl http://localhost:5001/api/cities/by-name/Hanoi/weather
+
+# Lấy thời tiết theo tọa độ
+curl 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather'
+
+# Xóa thành phố theo ID
+curl -X DELETE http://localhost:5001/api/cities/by-id/1
 ```
 
 ### Kiểm thử với Postman hoặc Thunder Client:
@@ -499,18 +603,105 @@ curl http://localhost:5001/api/cities/by-name/Hanoi/weather
 
 ### Kiểm tra Redis Cache:
 
-```powershell
-# Kết nối Redis CLI (trong Docker)
-docker exec -it <redis-container-name> redis-cli
+Redis được sử dụng để cache dữ liệu thời tiết, giúp giảm số lượng API calls và tăng tốc độ response.
 
-# Xem tất cả keys
+#### Kết nối Redis CLI:
+```powershell
+# Trong Docker container
+docker exec -it weather-forecast-express-redis-1 redis-cli
+
+# Hoặc nếu đặt tên khác
+docker ps  # Tìm tên container Redis
+docker exec -it <redis-container-name> redis-cli
+```
+
+#### Các lệnh Redis hữu ích:
+```bash
+# Xem tất cả cache keys
 KEYS *
 
-# Xem giá trị của một key
-GET weather:Hanoi
+# Xem cache danh sách cities
+GET cities:all
 
-# Xóa tất cả cache
+# Xem cache chi tiết city theo ID
+GET city:1
+
+# Xem cache thời tiết theo tên thành phố
+GET weather:name:Hanoi
+
+# Xem cache thời tiết theo tọa độ
+GET weather:latlon:21.0285:105.8542
+
+# Xem cache thời tiết theo OpenWeather ID
+GET weather:id:1581130
+
+# Kiểm tra TTL còn lại (giây)
+TTL weather:name:Hanoi
+
+# Xóa một cache key cụ thể
+DEL weather:name:Hanoi
+
+# Xóa tất cả cache (cẩn thận!)
 FLUSHALL
+
+# Kiểm tra số lượng keys
+DBSIZE
+```
+
+#### Verify cache hoạt động:
+```powershell
+# Request lần 1 (sẽ gọi OpenWeather API)
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather' }
+
+# Request lần 2 trong vòng 10 phút (sẽ lấy từ cache - nhanh hơn)
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather' }
+```
+
+### Docker Management:
+
+#### Quản lý containers:
+```powershell
+# Xem tất cả containers đang chạy
+docker ps
+
+# Xem logs của tất cả services
+docker compose logs
+
+# Xem logs của service cụ thể
+docker compose logs postgres
+docker compose logs redis
+docker compose logs app
+
+# Follow logs real-time
+docker compose logs -f
+
+# Restart một service
+docker compose restart redis
+docker compose restart postgres
+
+# Stop tất cả services
+docker compose down
+
+# Stop và xóa volumes (cẩn thận - sẽ mất data!)
+docker compose down -v
+
+# Start lại services
+docker compose up -d
+```
+
+#### Kiểm tra resource usage:
+```powershell
+# Xem CPU/Memory usage của containers
+docker stats
+```
+
+#### Backup và restore database:
+```powershell
+# Backup PostgreSQL
+docker exec -t weather-forecast-express-postgres-1 pg_dump -U postgres weather_db > backup.sql
+
+# Restore PostgreSQL
+Get-Content backup.sql | docker exec -i weather-forecast-express-postgres-1 psql -U postgres -d weather_db
 ```
 
 ## 🔄 Quy trình phát triển
@@ -692,10 +883,65 @@ model City {
 
 ### Cache Strategy
 
-- **TTL**: 10 phút (600 giây)
-- **Key Format**: `weather:{cityName}` hoặc `weather:coords:{lat},{lon}`
-- **Cache Invalidation**: Tự động expire sau TTL
-- **Cache Middleware**: Áp dụng cho weather endpoints
+- **TTL**: 
+  - Weather data: 10 phút (600 giây)
+  - Cities list: 1 giờ (3600 giây)
+  - City details: 10 phút (600 giây)
+- **Key Formats**: 
+  - `cities:all` - Cache danh sách tất cả thành phố
+  - `city:{id}` - Cache chi tiết thành phố theo ID
+  - `weather:name:{cityName}` - Cache thời tiết theo tên thành phố
+  - `weather:latlon:{lat}:{lon}` - Cache thời tiết theo tọa độ
+  - `weather:id:{owmId}` - Cache thời tiết theo OpenWeather City ID
+- **Cache Invalidation**: 
+  - Weather: Tự động expire sau TTL
+  - Cities list: Tự động cập nhật khi tạo/xóa thành phố (transaction)
+  - City details: Tự động xóa khi thành phố bị delete
+  - Manual refresh: Endpoint `/api/cities/:id/refresh` để cập nhật thời tiết
+- **Cache Middleware**: 
+  - `cacheWeatherByCityNameMiddleware` - Cache cho `/by-name/:name/weather`
+  - `cacheWeatherByLatLonMiddleware` - Cache cho `/by-lat-lon/:lat/:lon/weather`
+  - `cacheWeatherByCityIdMiddleware` - Cache cho `/by-id/:owmId/weather`
+  - `cacheCityByIdMiddleware` - Cache cho `/by-id/:id`
+- **Smart Cache Updates**:
+  - Khi tạo city mới: Transaction đảm bảo DB update và cache update đồng bộ
+  - Khi xóa city: Transaction xóa DB, xóa cache chi tiết, và cập nhật cache danh sách
+  - Prisma Transaction đảm bảo data consistency
+- **Redis Configuration**:
+  - Host: Configurable via `REDIS_HOST` (default: localhost)
+  - Port: Configurable via `REDIS_PORT` (default: 6379)
+  - Password: Optional via `REDIS_PASSWORD`
+  - Connection pooling và retry logic
+
+### Docker Configuration
+
+Dự án sử dụng Docker Compose để orchestrate 3 services chính:
+
+#### Services:
+1. **PostgreSQL** (Database)
+   - Image: `postgres:16-alpine`
+   - Port: `5432:5432`
+   - Volume: `postgres_data` (persistent storage)
+   - Environment: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+
+2. **Redis** (Cache)
+   - Image: `redis:7-alpine`
+   - Port: `6379:6379`
+   - Volume: `redis_data` (persistent storage)
+   - Configuration: Optimized for caching
+
+3. **App** (Node.js Application)
+   - Build: From local Dockerfile
+   - Port: `5001:5001`
+   - Depends on: PostgreSQL và Redis
+   - Volumes: Source code mounting cho development
+   - Environment: Loaded từ `.env` file
+
+#### Docker Compose Features:
+- **Health Checks**: Đảm bảo services sẵn sàng trước khi start app
+- **Restart Policy**: Auto-restart on failure
+- **Network**: Isolated Docker network cho inter-service communication
+- **Volumes**: Persistent data storage cho database và cache
 
 ## 🚀 Deployment
 
