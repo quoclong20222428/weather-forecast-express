@@ -343,8 +343,8 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 | Method | Endpoint | Mô tả | Cache |
 |--------|----------|-------|-------|
 | **GET** | `/api/cities/all` | Lấy danh sách tất cả thành phố đã lưu | ✅ |
-| **POST** | `/api/cities/saved-city/:name/:country/:lat/:lon` | Tạo thành phố mới vào danh sách | ❌ |
-| **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố theo ID | ❌ |
+| **POST** | `/api/cities/saved-city/:name/:country/:lat/:lon` | Tạo thành phố mới vào danh sách | ✅ |
+| **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố theo ID | ✅ |
 | **GET** | `/api/cities/by-id/:id` | Lấy chi tiết thành phố theo ID | ✅ |
 | **POST** | `/api/cities/:id/refresh` | Làm mới dữ liệu thời tiết cho thành phố đã lưu | ❌ |
 | **GET** | `/api/cities/by-name/:name/weather` | Lấy thời tiết trực tiếp theo tên thành phố | ✅ |
