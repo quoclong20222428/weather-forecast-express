@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { HttpError } from "../../middleware/index.js";
-import { saveCity as saveCityByName } from "../../services/weather/index.js";
+import { saveCity as saveCityService } from "../../services/weather/index.js";
 
 export const saveCity = async (req: Request, res: Response, next: NextFunction) => {
-    const { lat, lon, name, owmId } = req.body as { lat: number; lon: number; name: string; owmId: number };
+    const { lat, lon, name } = req.body as { lat: number; lon: number; name: string };
     const latNum = Number(lat), lonNum = Number(lon);
 
     if (
@@ -17,7 +17,7 @@ export const saveCity = async (req: Request, res: Response, next: NextFunction) 
     }
 
     try {
-        const result = await saveCityByName(latNum, lonNum, name.trim(), owmId);
+        const result = await saveCityService(latNum, lonNum, name.trim());
 
         // Nếu city đã tồn tại, trả về status 200 với thông báo
         if (result.alreadyExists) {

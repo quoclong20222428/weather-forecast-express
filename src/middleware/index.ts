@@ -2,8 +2,5 @@ export { HttpError } from "./httpError.js";
 export { errorHandler } from "./errorHandler.js";
 export { notFoundHandler } from "./notFoundHandler.js";
 export { requestLogger } from "./requestLogger.js";
-export { 
-  cacheWeatherByCityNameMiddleware, 
-  cacheWeatherByLatLonMiddleware,
-} from "./cacheWeather.js";
-export {cacheSavedCityWeatherMiddleware} from "./cacheSavedCities.js";
+export { cacheWeatherByLatLonMiddleware } from "./cacheWeather.js";
+export { cacheSavedCityWeatherMiddleware } from "./cacheSavedCities.js";

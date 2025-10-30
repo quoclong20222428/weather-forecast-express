@@ -23,24 +23,3 @@ export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response
         return next();
     }
 }
-
-export const cacheWeatherByCityNameMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const city = req.params.name?.toLowerCase();
-    if (!city) {
-        return next();
-    }
-    const cacheKey = `weather:${city}`;
-    const redisClient = await initializeRedisClient();
-
-    try {
-        const cachedData = await redisClient.get(cacheKey);
-        if (cachedData) {
-            const weatherData: OpenWeatherResponse = JSON.parse(cachedData);
-            return res.json(weatherData);
-        }
-        return next();
-    } catch (error) {
-        console.error("Error fetching weather data from cache:", error);
-        return next();
-    }
-}

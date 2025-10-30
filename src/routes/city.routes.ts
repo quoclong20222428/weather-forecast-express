@@ -19,7 +19,7 @@ router.get("/by-lat-lon/:lat/:lon/weather", cacheWeatherByLatLonMiddleware, getW
 // router.get("/", listCities);
 
 // Lấy thời tiết của thành phố đã lưu theo id (từ database)
-router.get("/saved/:id/weather", cacheSavedCityWeatherMiddleware, getSavedCityWeather);
+router.get("/by-id/:id", cacheSavedCityWeatherMiddleware, getSavedCityWeather);
 
 /* --------------------- Route thao tác với thành phố --------------------- */
 // Lưu thành phố theo tên (gọi OpenWeather, map và lưu)

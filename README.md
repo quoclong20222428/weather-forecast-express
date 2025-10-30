@@ -197,13 +197,10 @@ weather-forecast-express/
 │   │
 │   ├── controllers/                     # 🎮 CONTROLLERS LAYER (Modular)
 │   │   ├── city/                       # City module
-│   │   │   ├── listCities.controller.ts
-│   │   │   ├── saveCity.controller.ts
 │   │   │   ├── getSavedCityWeather.controller.ts
-│   │   │   ├── unsaveCity.controller.ts
 │   │   │   ├── getWeatherCityByLatLon.controller.ts
-│   │   │   ├── getWeatherByName.controller.ts
-│   │   │   ├── getWeatherById.controller.ts
+│   │   │   ├── saveCity.controller.ts
+│   │   │   ├── unsaveCity.controller.ts
 │   │   │   └── index.ts                # 📦 Export hub
 │   │   └── index.ts                    # 📦 Root export
 │   │
@@ -224,9 +221,8 @@ weather-forecast-express/
 │   │   │   ├── types.ts                # Shared types
 │   │   │   ├── utils.ts                # Shared utilities
 │   │   │   ├── getWeatherByLatLon.service.ts
-│   │   │   ├── getWeatherByCity.service.ts
 │   │   │   ├── saveCity.service.ts
-│   │   │   ├── unsaveCityByName.service.ts
+│   │   │   ├── unsaveCity.service.ts
 │   │   │   ├── getSavedCities.service.ts
 │   │   │   ├── getCityById.service.ts
 │   │   │   ├── getSavedCityWeather.service.ts
@@ -390,8 +386,6 @@ CORS_ORIGIN=http://localhost:5173
 4. Tạo API key mới hoặc copy key có sẵn
 5. Thay thế `your_openweather_api_key_here` trong file `.env`
 
-> ⚠️ **Lưu ý**: API key mới cần khoảng 10-15 phút để được kích hoạt.
-
 ### Bước 2: Khởi động PostgreSQL và Redis
 
 #### Sử dụng Docker Compose (Khuyên dùng):
@@ -463,8 +457,8 @@ npm start
 # Kiểm tra root endpoint
 Invoke-RestMethod -Uri 'http://localhost:5001/' -Method Get
 
-# Kiểm tra danh sách cities
-Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/all' -Method Get
+# Kiểm tra lấy thời tiết theo tọa độ
+Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather' -Method Get
 ```
 
 ## 📡 Tích hợp với OpenWeather API
@@ -473,17 +467,15 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 
 ### Các API endpoint được sử dụng:
 
-- **`/weather?q={city}`** - Lấy thời tiết theo tên thành phố
-- **`/weather?id={owmId}`** - Lấy thời tiết theo OpenWeather City ID
 - **`/weather?lat={lat}&lon={lon}`** - Lấy thời tiết theo tọa độ địa lý
 
 ### Xử lý dữ liệu:
 
-1. `weather.service.ts` gọi OpenWeather API với `OW_API_KEY`
+1. Services gọi OpenWeather API với `OW_API_KEY` theo tọa độ `lat` và `lon`
 2. Dữ liệu được chuẩn hóa và validate
-3. Kết quả được cache trong Redis (TTL: 10 phút)
+3. Kết quả được cache trong Redis (TTL: 10 phút với randomization)
 4. Thông tin thành phố được lưu vào PostgreSQL với model `City`
-5. Bao gồm: `lat`, `lon`, `timezone`, `country`, `lastWeather`, và nhiều thông tin khác
+5. Thông tin lưu trữ: `id`, `name`, `lat`, `lon`, `createdAt`, `updatedAt`
 
 ## 📚 API Endpoints
 
@@ -493,7 +485,7 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 |--------|----------|-------|-------|
 | **POST** | `/api/cities` | Lưu thành phố mới (lat, lon, name) | ❌ |
 | **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố đã lưu theo ID | ❌ |
-| **GET** | `/api/cities/saved/:id/weather` | Lấy thời tiết của thành phố đã lưu theo ID | ✅ |
+| **GET** | `/api/cities/by-id/:id` | Lấy thời tiết của thành phố đã lưu theo ID | ✅ |
 | **GET** | `/api/cities/by-lat-lon/:lat/:lon/weather` | Lấy thời tiết theo tọa độ địa lý | ✅ |
 
 ### 📋 API Categories
@@ -598,12 +590,12 @@ DELETE /api/cities/by-id/1
 
 #### 3. Lấy thời tiết của thành phố đã lưu
 ```http
-GET /api/cities/saved/:id/weather
+GET /api/cities/by-id/:id
 ```
 
 **Ví dụ:**
 ```http
-GET /api/cities/saved/1/weather
+GET /api/cities/by-id/1
 ```
 
 **Response:**
@@ -766,7 +758,7 @@ Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities' -Body $bo
 
 #### 2. Lấy thời tiết của thành phố đã lưu:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/saved/1/weather'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-id/1'
 ```
 
 #### 3. Lấy thời tiết theo tọa độ:
@@ -798,7 +790,7 @@ curl -X POST http://localhost:5001/api/cities \
   }'
 
 # Lấy thời tiết của saved city
-curl http://localhost:5001/api/cities/saved/1/weather
+curl http://localhost:5001/api/cities/by-id/1
 
 # Lấy thời tiết theo tọa độ
 curl 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather'
@@ -863,10 +855,10 @@ DBSIZE
 #### Verify cache hoạt động:
 ```powershell
 # Request lần 1 (sẽ gọi OpenWeather API)
-Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/saved/1/weather' }
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-id/1' }
 
 # Request lần 2 trong vòng 10 phút (sẽ lấy từ cache - nhanh hơn)
-Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/saved/1/weather' }
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-id/1' }
 ```
 
 ### Docker Management:
@@ -976,16 +968,6 @@ Giải pháp:
 ```
 
 ### Vấn đề với Database
-
-#### ❌ Error: `The column City.owmId does not exist`:
-```powershell
-# Chạy lại migrations
-npx prisma migrate deploy
-# Hoặc
-npx prisma migrate dev
-# Sau đó generate client
-npx prisma generate
-```
 
 #### ❌ Error: Connection to database failed:
 ```
@@ -1106,7 +1088,7 @@ model City {
   - Saved city weather: Tự động expire sau TTL
 - **Cache Middleware**: 
   - `cacheWeatherByLatLonMiddleware` - Cache cho `/by-lat-lon/:lat/:lon/weather`
-  - `cacheSavedCityWeatherMiddleware` - Cache cho `/saved/:id/weather`
+  - `cacheSavedCityWeatherMiddleware` - Cache cho `/by-id/:id`
 - **Smart Cache Updates**:
   - Khi tạo city mới: Xóa cache `cities:saved` để refresh danh sách
   - Khi xóa city: Xóa cache `cities:saved` để refresh danh sách

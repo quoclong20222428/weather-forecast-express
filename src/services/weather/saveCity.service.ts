@@ -1,7 +1,7 @@
 import { prisma } from "../../config/db.js";
 import { initializeRedisClient } from "../../utils/redisClient.js";
 
-export const saveCity = async (lat: number, lon: number, name: string, owmId: number) => {
+export const saveCity = async (lat: number, lon: number, name: string) => {
   const db = prisma as any;
 
   // Kiểm tra xem city đã tồn tại chưa (theo lat, lon, name)
@@ -23,7 +23,6 @@ export const saveCity = async (lat: number, lon: number, name: string, owmId: nu
 
   const newCity = await db.city.create({
     data: {
-      owmId: owmId,
       name: name,
       lat: lat,
       lon: lon,

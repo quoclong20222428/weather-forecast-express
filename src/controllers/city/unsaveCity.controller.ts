@@ -1,23 +1,26 @@
 import { NextFunction, Request, Response } from "express";
 import { HttpError } from "../../middleware/index.js";
-import { unsaveCityByName } from "../../services/weather/index.js";
+import { unsaveCity as unsaveCityService } from "../../services/weather/index.js";
 
 export const unsaveCity = async (req: Request, res: Response, next: NextFunction) => {
-    const { lat, lon, name, owmId } = req.body as { lat: number; lon: number; name: string; owmId: number };
+    const { id } = req.params;
+    const { lat, lon, name } = req.body as { lat: number; lon: number; name: string };
+    const idNum = Number(id);
     const latNum = Number(lat), lonNum = Number(lon);
 
     if (
+        Number.isNaN(idNum) ||
         lat == null || lon == null || name == null ||
         Number.isNaN(latNum) || Number.isNaN(lonNum) ||
         latNum < -90 || latNum > 90 ||
         lonNum < -180 || lonNum > 180 ||
         !name.trim()
     ) {
-        return next(new HttpError(400, "Giá trị lat, lon hoặc name bị thiếu hoặc không hợp lệ"));
+        return next(new HttpError(400, "Giá trị id, lat, lon hoặc name bị thiếu hoặc không hợp lệ"));
     }
 
     try {
-        const city = await unsaveCityByName(latNum, lonNum, name.trim(), owmId);
+        const city = await unsaveCityService(idNum, latNum, lonNum, name.trim());
         if (!city) {
             return next(new HttpError(404, "Không tìm thấy thành phố"));
         }
