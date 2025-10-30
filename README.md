@@ -205,13 +205,11 @@ weather-forecast-express/
 │   │   │   ├── getWeatherByName.controller.ts
 │   │   │   ├── getWeatherById.controller.ts
 │   │   │   └── index.ts                # 📦 Export hub
-│   │   ├── index.ts                    # 📦 Root export
-│   │   ├── city.controller.ts          # (Deprecated - old file)
-│   │   └── README.md                   # Documentation
+│   │   └── index.ts                    # 📦 Root export
 │   │
 │   ├── middleware/                      # 🎯 MIDDLEWARE LAYER (Modular)
 │   │   ├── cacheWeather.ts             # Redis cache middleware
-│   │   ├── cacheCityById.ts            # Cache by city ID
+│   │   ├── cacheSavedCities.ts         # Cache for saved cities list
 │   │   ├── errorHandler.ts             # Error handling
 │   │   ├── httpError.ts                # Custom HTTP error
 │   │   ├── notFoundHandler.ts          # 404 handler
@@ -233,21 +231,18 @@ weather-forecast-express/
 │   │   │   ├── getCityById.service.ts
 │   │   │   ├── getSavedCityWeather.service.ts
 │   │   │   └── index.ts                # 📦 Export hub
-│   │   ├── index.ts                    # 📦 Root export
-│   │   └── weather.service.ts          # (Deprecated - old file)
+│   │   └── index.ts                    # 📦 Root export
 │   │
 │   └── utils/                           # 🛠️ UTILITIES
 │       └── redisClient.ts              # Redis connection & utilities
 │
 ├── .env                                # Environment variables
 ├── docker-compose.yml                  # Docker services configuration
+├── Dockerfile                          # Docker image configuration
 ├── nodemon.json                        # Nodemon configuration
 ├── package.json                        # Dependencies & scripts
 ├── tsconfig.json                       # TypeScript configuration
-├── CONTROLLER_REFACTORING.md          # Controller refactoring guide
-├── REFACTORING_VISUALIZATION.md       # Visual comparison
-├── REFACTORING_COMPLETE.md            # Summary & checklist
-└── QUICK_REFERENCE.md                 # Quick reference guide
+└── README.md                           # Project documentation (this file)
 ```
 
 ### 🎯 Nguyên tắc tổ chức code
