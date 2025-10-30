@@ -12,11 +12,6 @@ model City {
   // ID của thành phố theo OpenWeatherMap
   owmId        Int      @unique
   name         String
-  country      String
   lat          Float
   lon          Float
-  timezone     Int      // giây lệch múi giờ so với UTC
-  lastWeather  Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 }

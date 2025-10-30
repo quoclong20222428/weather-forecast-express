@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import { OpenWeatherResponse } from "../services/weather/index.js";
 import { initializeRedisClient } from "../utils/redisClient.js";
-import { OpenWeatherResponse } from "../services/weather.service.js";
 
 export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const { lat, lon } = req.query;
@@ -30,27 +30,6 @@ export const cacheWeatherByCityNameMiddleware = async (req: Request, res: Respon
         return next();
     }
     const cacheKey = `weather:${city}`;
-    const redisClient = await initializeRedisClient();
-
-    try {
-        const cachedData = await redisClient.get(cacheKey);
-        if (cachedData) {
-            const weatherData: OpenWeatherResponse = JSON.parse(cachedData);
-            return res.json(weatherData);
-        }
-        return next();
-    } catch (error) {
-        console.error("Error fetching weather data from cache:", error);
-        return next();
-    }
-}
-
-export const cacheWeatherByCityIdMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const owmId = req.params.owmId;
-    if (!owmId) {
-        return next();
-    }
-    const cacheKey = `weather:id:${owmId}`;
     const redisClient = await initializeRedisClient();
 
     try {

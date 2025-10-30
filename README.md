@@ -68,37 +68,47 @@ Weather Forecast Express là một Backend REST API được xây dựng để p
 
 ## 🚀 Tính năng
 
-### Quản lý thành phố
-- Thêm/xóa thành phố vào danh sách yêu thích
-- Lấy danh sách tất cả thành phố đã lưu
-- Xem chi tiết thông tin thành phố
+### Quản lý thành phố đã lưu
+- ✅ **Lưu thành phố**: Thêm thành phố vào danh sách yêu thích (theo lat, lon, name)
+- ✅ **Kiểm tra trùng lặp**: Tự động kiểm tra và không cho phép lưu lại thành phố đã tồn tại
+- ✅ **Xóa thành phố**: Xóa thành phố khỏi danh sách đã lưu theo ID
+- ✅ **Lấy danh sách**: Xem tất cả thành phố đã lưu (sắp xếp theo thời gian cập nhật)
+- ✅ **Lấy thời tiết của saved city**: Xem thời tiết của thành phố đã lưu với tên tùy chỉnh
 
 ### Dữ liệu thời tiết
-- Lấy thời tiết hiện tại theo tên thành phố
-- Lấy thời tiết theo tọa độ địa lý (lat/lon)
-- Lấy thời tiết theo OpenWeather City ID
-- Làm mới dữ liệu thời tiết cho thành phố đã lưu
+- 🌤️ **Theo tọa độ địa lý**: Lấy thời tiết theo latitude/longitude
+- 💾 **Saved city weather**: Lấy thời tiết của thành phố đã lưu với tên do user đặt (sử dụng ID từ database)
 
 ### Tối ưu hiệu suất
-- **Redis Caching**: Cache dữ liệu thời tiết với TTL 10 phút
-- **Smart Cache Keys**: Cache theo tên thành phố, tọa độ, và OpenWeather ID
-- **Cache Middleware**: Tự động cache cho tất cả weather endpoints
-- **Giảm API Calls**: Giảm thiểu số lượng request tới OpenWeather API
-- **Fast Response**: Tăng tốc độ phản hồi từ milliseconds thay vì seconds
+- ⚡ **Redis Caching**: Cache dữ liệu thời tiết với TTL có randomization
+- 🎯 **Smart Cache Keys**: Cache riêng biệt cho từng loại request
+  - `weather:latlon:{lat}:{lon}` - Cache theo tọa độ
+  - `weather:saved-city:{id}` - Cache riêng cho saved city (sử dụng ID từ database)
+- 🔄 **Cache Middleware**: Tự động kiểm tra và trả về cache trước khi gọi API
+- 📉 **Giảm API Calls**: Giảm thiểu số lượng request tới OpenWeather API
+- ⚡ **Fast Response**: Tăng tốc độ phản hồi từ milliseconds
+
+### Kiến trúc & Code Organization
+- 🏗️ **Layered Architecture**: Tổ chức theo kiến trúc phân tầng rõ ràng
+- 📁 **Modular Structure**: Mỗi module chia thành các file nhỏ, độc lập
+- 🎯 **Single Responsibility**: Mỗi file chỉ chịu trách nhiệm cho 1 chức năng
+- 🔌 **Index Export Pattern**: File index.ts tập trung để export (giống middleware)
+- 🧪 **Easy Testing**: Dễ dàng test từng function riêng biệt
+- 👥 **Team-friendly**: Tránh conflict khi nhiều dev làm việc song song
 
 ### Docker & Containerization
-- **Docker Compose**: Orchestration cho PostgreSQL, Redis và App
-- **Multi-container Setup**: Tách biệt services để dễ scale
-- **Volume Persistence**: Dữ liệu database được lưu trữ persistent
-- **Network Isolation**: Services giao tiếp qua Docker network
-- **Easy Deployment**: Một lệnh để start tất cả services
+- 🐳 **Docker Compose**: Orchestration cho PostgreSQL, Redis và App
+- 📦 **Multi-container Setup**: Tách biệt services để dễ scale
+- 💾 **Volume Persistence**: Dữ liệu database được lưu trữ persistent
+- 🌐 **Network Isolation**: Services giao tiếp qua Docker network
+- 🚀 **Easy Deployment**: Một lệnh để start tất cả services
 
-### Middleware & Logging
-- Request logging với thông tin chi tiết
-- Xử lý lỗi tập trung
-- Cache middleware cho weather endpoints
-- CORS configuration
-- Error handling middleware
+### Middleware & Error Handling
+- 📝 **Request Logging**: Log chi tiết mọi request (method, path, status, duration)
+- ❌ **Centralized Error Handling**: Xử lý lỗi tập trung với HttpError class
+- 🔒 **CORS Configuration**: Cấu hình CORS cho cross-origin requests
+- 🎭 **404 Handler**: Xử lý route không tồn tại
+- ⚡ **Cache Middleware**: Middleware riêng cho từng loại weather request
 
 ## 🛠 Công nghệ sử dụng
 
@@ -131,48 +141,192 @@ Weather Forecast Express là một Backend REST API được xây dựng để p
 
 ## 🗂 Cấu trúc dự án
 
+### 🏗️ Kiến trúc phân tầng (Layered Architecture)
+
+Dự án được tổ chức theo **kiến trúc phân tầng** với **modular structure**, mỗi layer có trách nhiệm rõ ràng:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    📱 CLIENT                            │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP Request
+┌──────────────────────▼──────────────────────────────────┐
+│                  🛣️ ROUTES LAYER                        │
+│           Định nghĩa endpoints và routing               │
+│              routes/city.routes.ts                      │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│               🎯 MIDDLEWARE LAYER                       │
+│        Cache, Logging, Error Handling, CORS             │
+│    middleware/cacheWeather, requestLogger, etc.         │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│              🎮 CONTROLLERS LAYER                       │
+│       Request validation & Response formatting          │
+│              controllers/city/*.ts                      │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│               ⚙️ SERVICES LAYER                         │
+│         Business logic & External API calls             │
+│              services/weather/*.ts                      │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│            💾 DATA ACCESS LAYER                         │
+│         Database (Prisma) & Cache (Redis)               │
+│         config/db.ts, utils/redisClient.ts              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 📁 Cấu trúc chi tiết
+
 ```
 weather-forecast-express/
 ├── prisma/
-│   ├── schema.prisma              # Database schema và model definitions
-│   └── migrations/                # Database migrations
+│   ├── schema.prisma                    # Database schema
+│   └── migrations/                      # Database migrations
 ├── src/
-│   ├── app.ts                     # Express app configuration
-│   ├── server.ts                  # HTTP server entry point
+│   ├── app.ts                          # Express app configuration
+│   ├── server.ts                       # HTTP server entry point
+│   │
 │   ├── config/
-│   │   └── db.ts                  # Prisma client configuration
-│   ├── controllers/
-│   │   └── city.controller.ts     # Request/Response handlers
-│   ├── middleware/
-│   │   ├── index.ts               # Middleware exports
-│   │   ├── cacheWeather.ts        # Redis cache middleware
-│   │   ├── errorHandler.ts        # Error handling middleware
-│   │   ├── httpError.ts           # Custom HTTP error class
-│   │   ├── notFoundHandler.ts     # 404 handler
-│   │   └── requestLogger.ts       # Request logging middleware
-│   ├── routes/
-│   │   └── city.routes.ts         # API endpoint definitions
-│   ├── services/
-│   │   └── weather.service.ts     # OpenWeather API & database operations
-│   └── utils/
-│       └── redisClient.ts         # Redis connection & utilities
-├── .env                           # Environment variables (tạo riêng)
-├── docker-compose.yml             # Docker services configuration
-├── nodemon.json                   # Nodemon configuration
-├── package.json                   # Dependencies & scripts
-└── tsconfig.json                  # TypeScript configuration
+│   │   └── db.ts                       # Prisma client configuration
+│   │
+│   ├── controllers/                     # 🎮 CONTROLLERS LAYER (Modular)
+│   │   ├── city/                       # City module
+│   │   │   ├── listCities.controller.ts
+│   │   │   ├── saveCity.controller.ts
+│   │   │   ├── getSavedCityWeather.controller.ts
+│   │   │   ├── unsaveCity.controller.ts
+│   │   │   ├── getWeatherCityByLatLon.controller.ts
+│   │   │   ├── getWeatherByName.controller.ts
+│   │   │   ├── getWeatherById.controller.ts
+│   │   │   └── index.ts                # 📦 Export hub
+│   │   ├── index.ts                    # 📦 Root export
+│   │   ├── city.controller.ts          # (Deprecated - old file)
+│   │   └── README.md                   # Documentation
+│   │
+│   ├── middleware/                      # 🎯 MIDDLEWARE LAYER (Modular)
+│   │   ├── cacheWeather.ts             # Redis cache middleware
+│   │   ├── cacheCityById.ts            # Cache by city ID
+│   │   ├── errorHandler.ts             # Error handling
+│   │   ├── httpError.ts                # Custom HTTP error
+│   │   ├── notFoundHandler.ts          # 404 handler
+│   │   ├── requestLogger.ts            # Request logging
+│   │   └── index.ts                    # 📦 Export hub
+│   │
+│   ├── routes/                          # 🛣️ ROUTES LAYER
+│   │   └── city.routes.ts              # API endpoints definition
+│   │
+│   ├── services/                        # ⚙️ SERVICES LAYER (Modular)
+│   │   ├── weather/                    # Weather module
+│   │   │   ├── types.ts                # Shared types
+│   │   │   ├── utils.ts                # Shared utilities
+│   │   │   ├── getWeatherByLatLon.service.ts
+│   │   │   ├── getWeatherByCity.service.ts
+│   │   │   ├── saveCity.service.ts
+│   │   │   ├── unsaveCityByName.service.ts
+│   │   │   ├── getSavedCities.service.ts
+│   │   │   ├── getCityById.service.ts
+│   │   │   ├── getSavedCityWeather.service.ts
+│   │   │   └── index.ts                # 📦 Export hub
+│   │   ├── index.ts                    # 📦 Root export
+│   │   └── weather.service.ts          # (Deprecated - old file)
+│   │
+│   └── utils/                           # 🛠️ UTILITIES
+│       └── redisClient.ts              # Redis connection & utilities
+│
+├── .env                                # Environment variables
+├── docker-compose.yml                  # Docker services configuration
+├── nodemon.json                        # Nodemon configuration
+├── package.json                        # Dependencies & scripts
+├── tsconfig.json                       # TypeScript configuration
+├── CONTROLLER_REFACTORING.md          # Controller refactoring guide
+├── REFACTORING_VISUALIZATION.md       # Visual comparison
+├── REFACTORING_COMPLETE.md            # Summary & checklist
+└── QUICK_REFERENCE.md                 # Quick reference guide
 ```
 
-### Mô tả các thành phần chính
+### 🎯 Nguyên tắc tổ chức code
 
-- **`src/app.ts`** - Cấu hình Express app với các middleware (CORS, JSON parser, routes, error handling)
-- **`src/server.ts`** - Khởi động HTTP server, load environment variables
-- **`src/routes/city.routes.ts`** - Định nghĩa tất cả các endpoint `/api/cities`
-- **`src/controllers/city.controller.ts`** - Xử lý logic request/response
-- **`src/services/weather.service.ts`** - Gọi OpenWeather API và thao tác với database
-- **`src/middleware/cacheWeather.ts`** - Middleware cache Redis cho weather data
-- **`src/utils/redisClient.ts`** - Redis client connection và helper functions
-- **`prisma/schema.prisma`** - Schema database và định nghĩa model `City`
+#### 1. **Layered Architecture (Kiến trúc phân tầng)**
+```
+Routes → Middleware → Controllers → Services → Data Access
+```
+- **Routes**: Định nghĩa API endpoints
+- **Middleware**: Xử lý trước/sau request (cache, logging, validation)
+- **Controllers**: Validate input, gọi services, format response
+- **Services**: Business logic, gọi external APIs
+- **Data Access**: Tương tác với Database và Cache
+
+#### 2. **Modular Structure (Cấu trúc module)**
+- Mỗi module (city, user, auth...) có thư mục riêng
+- Mỗi file chỉ chứa **1 function** (Single Responsibility)
+- File `index.ts` tập trung để export (Export Hub Pattern)
+
+#### 3. **Naming Convention**
+```
+[actionName][Resource].[layer].ts
+```
+Ví dụ:
+- `saveCity.controller.ts` - Controller để lưu city
+- `getWeatherByLatLon.service.ts` - Service lấy weather theo lat/lon
+- `cacheWeather.ts` - Middleware cache cho weather
+
+#### 4. **Import Pattern**
+```typescript
+// Import từ module index (Recommended)
+import { saveCity } from "../../services/weather/index.js";
+
+// Hoặc từ root index
+import { saveCity } from "../../services/index.js";
+```
+
+### 📋 Mô tả chi tiết các layer
+
+#### 🛣️ **Routes Layer**
+- Định nghĩa API endpoints và HTTP methods
+- Áp dụng middleware cho từng route
+- Kết nối URL với controller handlers
+
+#### 🎯 **Middleware Layer**
+- **cacheWeather.ts**: Cache middleware cho weather data (4 types)
+- **requestLogger.ts**: Log mọi request với method, path, status, duration
+- **errorHandler.ts**: Xử lý lỗi tập trung và format error response
+- **httpError.ts**: Custom error class với status code
+- **notFoundHandler.ts**: Xử lý 404 Not Found
+
+#### 🎮 **Controllers Layer** (Modular)
+Mỗi controller file xử lý **1 endpoint**:
+- Validate request data (params, body, query)
+- Gọi service layer
+- Format và trả về response
+- Error handling
+
+#### ⚙️ **Services Layer** (Modular)
+Mỗi service file chứa **1 business function**:
+- Gọi OpenWeather API
+- Thao tác với database qua Prisma
+- Xử lý logic nghiệp vụ
+- Cache kết quả vào Redis
+
+#### 💾 **Data Access Layer**
+- **Prisma ORM**: Type-safe database access
+- **Redis Client**: In-memory caching
+- Connection management và utilities
+
+### 🎨 Ưu điểm của kiến trúc này
+
+✅ **Separation of Concerns**: Mỗi layer có trách nhiệm rõ ràng  
+✅ **Maintainability**: Dễ bảo trì và sửa lỗi  
+✅ **Scalability**: Dễ mở rộng thêm features mới  
+✅ **Testability**: Dễ dàng viết unit tests cho từng layer  
+✅ **Team Collaboration**: Team có thể làm việc song song không conflict  
+✅ **Code Reusability**: Services có thể được tái sử dụng  
+✅ **Single Responsibility**: Mỗi file chỉ làm 1 việc
 
 ## ✅ Yêu cầu
 
@@ -342,150 +496,130 @@ Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thự
 
 | Method | Endpoint | Mô tả | Cache |
 |--------|----------|-------|-------|
-| **GET** | `/api/cities/all` | Lấy danh sách tất cả thành phố đã lưu | ✅ |
-| **POST** | `/api/cities/saved-city/:name/:country/:lat/:lon` | Tạo thành phố mới vào danh sách | ✅ |
-| **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố theo ID | ✅ |
-| **GET** | `/api/cities/by-id/:id` | Lấy chi tiết thành phố theo ID | ✅ |
-| **POST** | `/api/cities/:id/refresh` | Làm mới dữ liệu thời tiết cho thành phố đã lưu | ❌ |
-| **GET** | `/api/cities/by-name/:name/weather` | Lấy thời tiết trực tiếp theo tên thành phố | ✅ |
-| **GET** | `/api/cities/by-id/:owmId/weather` | Lấy thời tiết trực tiếp theo OpenWeather City ID | ✅ |
-| **GET** | `/api/cities/by-lat-lon/:lat/:lon/weather` | Lấy thời tiết trực tiếp theo tọa độ (lat, lon) | ✅ |
+| **POST** | `/api/cities` | Lưu thành phố mới (lat, lon, name) | ❌ |
+| **DELETE** | `/api/cities/by-id/:id` | Xóa thành phố đã lưu theo ID | ❌ |
+| **GET** | `/api/cities/saved/:id/weather` | Lấy thời tiết của thành phố đã lưu theo ID | ✅ |
+| **GET** | `/api/cities/by-lat-lon/:lat/:lon/weather` | Lấy thời tiết theo tọa độ địa lý | ✅ |
+
+### 📋 API Categories
+
+#### 🏙️ **Saved Cities Management**
+Quản lý danh sách thành phố đã lưu của user
+
+#### 🌤️ **Weather Data**
+Lấy thông tin thời tiết trực tiếp từ OpenWeather API
 
 ### Chi tiết endpoints:
 
-#### 1. Lấy danh sách tất cả thành phố đã lưu
+---
+
+### 🏙️ Saved Cities Management
+
+#### 1. Lưu thành phố mới
 ```http
-GET /api/cities/all
+POST /api/cities
 ```
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Ho Chi Minh City",
-    "country": "VN",
-    "lat": 10.8231,
-    "lon": 106.6297,
-    "owmId": 1580578,
-    "timezone": 25200,
-    "lastWeather": { ... },
-    "createdAt": "2025-01-15T10:30:00Z",
-    "updatedAt": "2025-01-15T10:30:00Z"
-  }
-]
-```
-
-**Cache:** Dữ liệu được cache với key `cities:all` (TTL: 1 giờ). Cache được tự động cập nhật khi tạo hoặc xóa thành phố.
-
-#### 2. Tạo thành phố mới
-```http
-POST /api/cities/saved-city/:name/:country/:lat/:lon
-```
-
-**Ví dụ:**
-```http
-POST /api/cities/saved-city/Hanoi/VN/21.0285/105.8542
-```
-
-**Response:**
+**Request Body:**
 ```json
 {
-  "id": 2,
-  "name": "Hanoi",
-  "country": "VN",
   "lat": 21.0285,
   "lon": 105.8542,
-  "owmId": 0,
-  "timezone": 0,
-  "lastWeather": null,
-  "createdAt": "2025-01-15T11:00:00Z",
-  "updatedAt": "2025-01-15T11:00:00Z"
+  "name": "Hà Nội"
 }
 ```
 
-**Note:** Endpoint này tạo thành phố mới và tự động cập nhật cache `cities:all`.
+**Response (201 Created - Thành phố mới):**
+```json
+{
+  "city": {
+    "id": 1,
+    "name": "Hà Nội",
+    "lat": 21.0285,
+    "lon": 105.8542
+  },
+  "message": "Thành phố đã được lưu thành công",
+  "alreadyExists": false
+}
+```
 
-#### 3. Xóa thành phố theo ID
+**Response (200 OK - Thành phố đã tồn tại):**
+```json
+{
+  "city": {
+    "id": 1,
+    "name": "Hà Nội",
+    "lat": 21.0285,
+    "lon": 105.8542
+  },
+  "message": "Thành phố đã được lưu trước đó",
+  "alreadyExists": true
+}
+```
+
+**Note:** 
+- ✅ Tự động kiểm tra trùng lặp theo `name`, `lat`, `lon`
+- ✅ Không cho phép lưu lại nếu đã tồn tại
+- ✅ Xóa cache `cities:saved` sau khi lưu thành công
+
+---
+
+#### 2. Xóa thành phố đã lưu
 ```http
 DELETE /api/cities/by-id/:id
 ```
 
-**Ví dụ:**
-```http
-DELETE /api/cities/by-id/2
-```
-
-**Response:**
+**Request Body:**
 ```json
 {
-  "message": "City deleted successfully",
-  "remainingCities": [...]
+  "lat": 21.0285,
+  "lon": 105.8542,
+  "name": "Hà Nội"
 }
 ```
 
-**Note:** Endpoint này xóa thành phố, xóa cache `city:{id}`, và cập nhật cache `cities:all`.
-
-#### 4. Lấy chi tiết thành phố theo ID
-```http
-GET /api/cities/by-id/:id
-```
-
 **Ví dụ:**
 ```http
-GET /api/cities/by-id/1
+DELETE /api/cities/by-id/1
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
-  "id": 1,
-  "name": "Ho Chi Minh City",
-  "country": "VN",
-  "lat": 10.8231,
-  "lon": 106.6297,
-  "owmId": 1580578,
-  "timezone": 25200,
-  "lastWeather": { ... },
-  "createdAt": "2025-01-15T10:30:00Z",
-  "updatedAt": "2025-01-15T10:30:00Z"
+  "message": "Thành phố đã được xóa"
 }
 ```
 
-**Cache:** Dữ liệu được cache với key `city:{id}` (TTL: 10 phút).
+**Response (404 Not Found):**
+```json
+{
+  "error": "Không tìm thấy thành phố"
+}
+```
 
-#### 5. Làm mới thời tiết cho thành phố đã lưu
+**Note:** Xóa thành phố dựa trên `id` từ database và validate với `lat`, `lon`, `name` để đảm bảo chính xác
+
+---
+
+#### 3. Lấy thời tiết của thành phố đã lưu
 ```http
-POST /api/cities/:id/refresh
+GET /api/cities/saved/:id/weather
 ```
 
 **Ví dụ:**
 ```http
-POST /api/cities/1/refresh
-```
-
-**Response:** Trả về thành phố với dữ liệu thời tiết mới cập nhật trong `lastWeather`.
-
-#### 6. Lấy thời tiết trực tiếp theo tên thành phố
-```http
-GET /api/cities/by-name/:name/weather
-```
-
-**Ví dụ:**
-```http
-GET /api/cities/by-name/Hanoi/weather
+GET /api/cities/saved/1/weather
 ```
 
 **Response:**
 ```json
 {
-  "name": "Hanoi",
-  "coord": { "lat": 21.0285, "lon": 105.8542 },
+  "coord": { "lon": 105.8542, "lat": 21.0285 },
   "weather": [
     {
       "id": 800,
       "main": "Clear",
-      "description": "clear sky",
+      "description": "trời quang đãng",
       "icon": "01d"
     }
   ],
@@ -494,33 +628,27 @@ GET /api/cities/by-name/Hanoi/weather
     "feels_like": 30.2,
     "temp_min": 27.0,
     "temp_max": 30.0,
-    "pressure": 1012,
+    "pressure": 1013,
     "humidity": 65
   },
-  "wind": {
-    "speed": 3.5,
-    "deg": 120
-  },
-  "dt": 1705315200,
-  "timezone": 25200
+  "name": "Hà Nội",
+  "savedCityId": 1
 }
 ```
 
-**Cache:** Dữ liệu được cache với key `weather:name:{name}` (TTL: 10 phút).
+**Features:**
+- ✅ Lấy thời tiết từ OpenWeather API theo `lat`, `lon` của city
+- ✅ **Override `name`**: Tên trả về là tên user đặt (từ database), không phải từ API
+- ✅ Thêm `savedCityId` để reference
+- ✅ Cache với key `weather:saved-city:{id}` (TTL: 10 phút)
 
-#### 7. Lấy thời tiết trực tiếp theo OpenWeather City ID
-```http
-GET /api/cities/by-id/:owmId/weather
-```
+**Cache:** ✅ Middleware `cacheSavedCityWeatherMiddleware`
 
-**Ví dụ:**
-```http
-GET /api/cities/by-id/1580578/weather
-```
+---
 
-**Cache:** Dữ liệu được cache với key `weather:id:{owmId}` (TTL: 10 phút).
+### 🌤️ Weather Data (Direct API Calls)
 
-#### 8. Lấy thời tiết trực tiếp theo tọa độ
+#### 4. Lấy thời tiết theo tọa độ địa lý
 ```http
 GET /api/cities/by-lat-lon/:lat/:lon/weather
 ```
@@ -530,69 +658,164 @@ GET /api/cities/by-lat-lon/:lat/:lon/weather
 GET /api/cities/by-lat-lon/21.0285/105.8542/weather
 ```
 
-**Cache:** Dữ liệu được cache với key `weather:latlon:{lat}:{lon}` (TTL: 10 phút).
+**Response:**
+```json
+{
+  "coord": { "lon": 105.8542, "lat": 21.0285 },
+  "weather": [
+    {
+      "id": 800,
+      "main": "Clear",
+      "description": "trời quang đãng",
+      "icon": "01d"
+    }
+  ],
+  "main": {
+    "temp": 28.5,
+    "feels_like": 30.2,
+    "temp_min": 27.0,
+    "temp_max": 30.0,
+    "pressure": 1013,
+    "humidity": 65
+  },
+  "wind": { "speed": 3.5, "deg": 120 },
+  "clouds": { "all": 10 },
+  "dt": 1642234567,
+  "sys": { "country": "VN", "sunrise": 1642200000, "sunset": 1642244000 },
+  "timezone": 25200,
+  "id": 1581130,
+  "name": "Hanoi",
+  "cod": 200
+}
+```
 
-## 🧪 Kiểm thử
+**Features:**
+- ✅ Lấy thời tiết theo tọa độ (latitude, longitude)
+- ✅ Không cần lưu thành phố trước
+- ✅ Cache với key `weather:latlon:{lat}:{lon}` (TTL: 10 phút)
+- ✅ Dữ liệu tiếng Việt từ OpenWeather API
+
+**Cache:** ✅ Middleware `cacheWeatherByLatLonMiddleware`
+
+---
+
+### 📊 Response Format
+
+Tất cả endpoints trả về JSON với format nhất quán:
+
+**Success Response:**
+```json
+{
+  "data": { ... },
+  "message": "Success message (optional)"
+}
+```
+
+**Error Response:**
+```json
+{
+  "error": "Error message",
+  "statusCode": 400
+}
+```
+
+### 🔑 HTTP Status Codes
+
+| Status Code | Meaning |
+|-------------|---------|
+| 200 | OK - Request thành công |
+| 201 | Created - Tạo resource thành công |
+| 400 | Bad Request - Dữ liệu không hợp lệ |
+| 404 | Not Found - Không tìm thấy resource |
+| 500 | Internal Server Error - Lỗi server |
+
+---
+
+### 🎯 Cache Strategy
+
+#### Cache Keys Pattern
+```
+weather:latlon:{lat}:{lon}           # Weather by coordinates
+weather:saved-city:{id}              # Weather for saved city (ID từ database)
+cities:saved                         # List of saved cities
+      "main": "Clear",
+      "description": "clear sky",
+      "icon": "01d"
+    }
+```
+
+#### Cache Behavior
+- **TTL**: 10 phút với randomization (±20 giây) để tránh cache stampede
+- **Cache Miss**: Nếu không có cache, gọi OpenWeather API và lưu vào cache
+- **Cache Hit**: Trả về dữ liệu từ Redis ngay lập tức
+- **Cache Invalidation**: 
+  - `cities:saved` được xóa khi lưu/xóa city
+  - Weather cache tự động expire sau TTL
+
+---
+
+## 🧪 Kiểm thử API
 
 ### Kiểm thử bằng PowerShell
 
-#### 1. Tạo thành phố Hồ Chí Minh:
+#### 1. Lưu thành phố Hà Nội:
 ```powershell
-Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities/saved-city/Ho Chi Minh City/VN/10.8231/106.6297'
+$body = @{
+    lat = 21.0285
+    lon = 105.8542
+    name = "Hà Nội"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities' -Body $body -ContentType 'application/json'
 ```
 
-#### 2. Lấy danh sách tất cả thành phố:
+#### 2. Lấy thời tiết của thành phố đã lưu:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/all'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/saved/1/weather'
 ```
 
-#### 3. Lấy chi tiết thành phố theo ID:
-```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-id/1'
-```
-
-#### 4. Lấy thời tiết theo tên thành phố:
-```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather'
-```
-
-#### 5. Lấy thời tiết theo tọa độ:
+#### 3. Lấy thời tiết theo tọa độ:
 ```powershell
 Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather'
 ```
 
-#### 6. Lấy thời tiết theo OpenWeather City ID:
+#### 4. Xóa thành phố:
 ```powershell
-Invoke-RestMethod -Method Get -Uri 'http://localhost:5001/api/cities/by-id/1581130/weather'
+$body = @{
+    lat = 21.0285
+    lon = 105.8542
+    name = "Hà Nội"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Delete -Uri 'http://localhost:5001/api/cities/by-id/1' -Body $body -ContentType 'application/json'
 ```
 
-#### 7. Làm mới thời tiết cho thành phố đã lưu:
-```powershell
-Invoke-RestMethod -Method Post -Uri 'http://localhost:5001/api/cities/1/refresh'
-```
-
-#### 8. Xóa thành phố theo ID:
-```powershell
-Invoke-RestMethod -Method Delete -Uri 'http://localhost:5001/api/cities/by-id/1'
-```
-
-### Kiểm thử với cURL (nếu có Git Bash hoặc WSL):
+### Kiểm thử với cURL (Git Bash / WSL / Linux):
 
 ```bash
-# Tạo thành phố mới
-curl -X POST 'http://localhost:5001/api/cities/saved-city/Hanoi/VN/21.0285/105.8542'
+# Lưu thành phố mới
+curl -X POST http://localhost:5001/api/cities \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lat": 21.0285,
+    "lon": 105.8542,
+    "name": "Hà Nội"
+  }'
 
-# Lấy danh sách tất cả thành phố
-curl http://localhost:5001/api/cities/all
-
-# Lấy thời tiết theo tên
-curl http://localhost:5001/api/cities/by-name/Hanoi/weather
+# Lấy thời tiết của saved city
+curl http://localhost:5001/api/cities/saved/1/weather
 
 # Lấy thời tiết theo tọa độ
 curl 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather'
 
-# Xóa thành phố theo ID
-curl -X DELETE http://localhost:5001/api/cities/by-id/1
+# Xóa thành phố
+curl -X DELETE http://localhost:5001/api/cities/by-id/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lat": 21.0285,
+    "lon": 105.8542,
+    "name": "Hà Nội"
+  }'
 ```
 
 ### Kiểm thử với Postman hoặc Thunder Client:
@@ -620,26 +843,20 @@ docker exec -it <redis-container-name> redis-cli
 # Xem tất cả cache keys
 KEYS *
 
-# Xem cache danh sách cities
-GET cities:all
+# Xem cache danh sách cities đã lưu
+GET cities:saved
 
-# Xem cache chi tiết city theo ID
-GET city:1
-
-# Xem cache thời tiết theo tên thành phố
-GET weather:name:Hanoi
+# Xem cache thời tiết của saved city theo ID
+GET weather:saved-city:1
 
 # Xem cache thời tiết theo tọa độ
 GET weather:latlon:21.0285:105.8542
 
-# Xem cache thời tiết theo OpenWeather ID
-GET weather:id:1581130
-
 # Kiểm tra TTL còn lại (giây)
-TTL weather:name:Hanoi
+TTL weather:saved-city:1
 
 # Xóa một cache key cụ thể
-DEL weather:name:Hanoi
+DEL weather:saved-city:1
 
 # Xóa tất cả cache (cẩn thận!)
 FLUSHALL
@@ -651,10 +868,10 @@ DBSIZE
 #### Verify cache hoạt động:
 ```powershell
 # Request lần 1 (sẽ gọi OpenWeather API)
-Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather' }
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/saved/1/weather' }
 
 # Request lần 2 trong vòng 10 phút (sẽ lấy từ cache - nhanh hơn)
-Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-name/Hanoi/weather' }
+Measure-Command { Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/saved/1/weather' }
 ```
 
 ### Docker Management:
@@ -868,45 +1085,37 @@ Model `City` trong Prisma:
 
 ```prisma
 model City {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  country     String?
-  lat         Float
-  lon         Float
-  timezone    Int?
-  owmId       Int?     @unique
-  lastWeather Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  lat       Float
+  lon       Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 ```
+
+**Lưu ý:** Dự án sử dụng `id` tự động tăng từ PostgreSQL để định danh thành phố, không sử dụng `owmId` từ OpenWeather API.
 
 ### Cache Strategy
 
 - **TTL**: 
-  - Weather data: 10 phút (600 giây)
-  - Cities list: 1 giờ (3600 giây)
-  - City details: 10 phút (600 giây)
+  - Weather data: 10 phút (600 giây) với randomization (±20 giây)
+  - Cities list: Xóa cache khi có thay đổi
 - **Key Formats**: 
-  - `cities:all` - Cache danh sách tất cả thành phố
-  - `city:{id}` - Cache chi tiết thành phố theo ID
-  - `weather:name:{cityName}` - Cache thời tiết theo tên thành phố
+  - `cities:saved` - Cache danh sách thành phố đã lưu
   - `weather:latlon:{lat}:{lon}` - Cache thời tiết theo tọa độ
-  - `weather:id:{owmId}` - Cache thời tiết theo OpenWeather City ID
+  - `weather:saved-city:{id}` - Cache thời tiết của saved city (ID từ database)
 - **Cache Invalidation**: 
   - Weather: Tự động expire sau TTL
-  - Cities list: Tự động cập nhật khi tạo/xóa thành phố (transaction)
-  - City details: Tự động xóa khi thành phố bị delete
-  - Manual refresh: Endpoint `/api/cities/:id/refresh` để cập nhật thời tiết
+  - Cities list: Xóa khi lưu/xóa thành phố
+  - Saved city weather: Tự động expire sau TTL
 - **Cache Middleware**: 
-  - `cacheWeatherByCityNameMiddleware` - Cache cho `/by-name/:name/weather`
   - `cacheWeatherByLatLonMiddleware` - Cache cho `/by-lat-lon/:lat/:lon/weather`
-  - `cacheWeatherByCityIdMiddleware` - Cache cho `/by-id/:owmId/weather`
-  - `cacheCityByIdMiddleware` - Cache cho `/by-id/:id`
+  - `cacheSavedCityWeatherMiddleware` - Cache cho `/saved/:id/weather`
 - **Smart Cache Updates**:
-  - Khi tạo city mới: Transaction đảm bảo DB update và cache update đồng bộ
-  - Khi xóa city: Transaction xóa DB, xóa cache chi tiết, và cập nhật cache danh sách
-  - Prisma Transaction đảm bảo data consistency
+  - Khi tạo city mới: Xóa cache `cities:saved` để refresh danh sách
+  - Khi xóa city: Xóa cache `cities:saved` để refresh danh sách
+  - Database ID được sử dụng để định danh và cache city
 - **Redis Configuration**:
   - Host: Configurable via `REDIS_HOST` (default: localhost)
   - Port: Configurable via `REDIS_PORT` (default: 6379)
