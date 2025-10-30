@@ -22,3 +22,14 @@ export const cacheSavedCityWeatherMiddleware = async (req: Request, res: Respons
         return next();
     }
 }
+
+export const deleteCachedUnsavedCity = async (cityId: number) => {
+    const cacheKey = `weather:saved-city:${cityId}`;
+    const redisClient = await initializeRedisClient();
+    try {
+        await redisClient.del(cacheKey);
+        console.log(`Cache deleted: saved city weather ${cityId}`);
+    } catch (error) {
+        console.error("Error deleting saved city weather data from cache:", error);
+    }
+};
