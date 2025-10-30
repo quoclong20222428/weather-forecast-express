@@ -3,12 +3,12 @@ import { OpenWeatherResponse } from "../services/weather/index.js";
 import { initializeRedisClient } from "../utils/redisClient.js";
 
 export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const { lat, lon } = req.query;
-    if (!lat || !lon) {
+    const { lat, lon, name} = req.query;
+    if (!lat || !lon || !name) {
         return next();
     }
 
-    const cacheKey = `weather:latlon:${lat}:${lon}`;
+    const cacheKey = `weather:place:${name}:latlon:${lat}:${lon}`;
     const redisClient = await initializeRedisClient();
 
     try {

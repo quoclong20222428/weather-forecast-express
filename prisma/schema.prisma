@@ -9,8 +9,6 @@ generator client {
 
 model City {
   id           Int      @id @default(autoincrement())
-  // ID của thành phố theo OpenWeatherMap
-  owmId        Int      @unique
   name         String
   lat          Float
   lon          Float

@@ -2,8 +2,9 @@ import { Router } from "express";
 import {
   getSavedCityWeather,
   getWeatherCityByLatLon,
+  listCities,
   saveCity,
-  unsaveCity
+  unsaveCity,
 } from "../controllers/city/index.js";
 import {
   cacheSavedCityWeatherMiddleware,
@@ -16,7 +17,7 @@ const router = Router();
 router.get("/by-lat-lon/:lat/:lon/weather", cacheWeatherByLatLonMiddleware, getWeatherCityByLatLon);
 
 // Danh sách thành phố đã lưu
-// router.get("/", listCities);
+router.get("/", listCities);
 
 // Lấy thời tiết của thành phố đã lưu theo id (từ database)
 router.get("/by-id/:id", cacheSavedCityWeatherMiddleware, getSavedCityWeather);

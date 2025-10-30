@@ -12,7 +12,7 @@ export const getWeatherByLatLon = async (lat: number, lon: number): Promise<Open
   
   // Lưu lại vào Redis sau khi fetch thành công
   const redisClient = await initializeRedisClient();
-  const cacheKey = `weather:latlon:${lat}:${lon}`;
+  const cacheKey = `weather:place:${res.data.name}:latlon:${lat}:${lon}`;
   
   if (!res.data) {
     const extraTTL = CACHE_TTL + 600; // cache not found result for more 10 minutes
