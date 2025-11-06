@@ -77,7 +77,39 @@ Tạo Prisma client:
 npx prisma generate
 ```
 
-### 7. Khởi Động Development Server
+### 7. Import Seed Data (Optional)
+
+Để sử dụng tính năng tìm kiếm địa điểm (location search), bạn cần import dữ liệu mẫu vào database:
+
+#### Bước 1: Tải file seed data
+Download file `seed_location.ndjson` từ Google Drive:
+👉 [Download seed_location.ndjson](https://drive.google.com/file/d/1229nlkpceRMzy3vb1oErkJQ71AQDeVDw/view?usp=sharing)
+
+#### Bước 2: Đặt file vào đúng vị trí
+Sau khi tải về, đặt file `seed_location.ndjson` vào thư mục:
+```
+prisma/seeds/seed_location.ndjson
+```
+
+#### Bước 3: Enable unaccent extension
+Kết nối vào PostgreSQL và chạy lệnh:
+```bash
+docker exec -it weather_postgres psql -U your_postgres_user -d weather_forecast_db -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+```
+
+Hoặc chạy trực tiếp trong database client:
+```sql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+#### Bước 4: Import data vào database
+```bash
+npm run seed
+```
+
+> **Lưu ý:** File seed data có dung lượng ~535MB chứa hơn 2 triệu địa điểm trên thế giới. Quá trình import có thể mất vài phút.
+
+### 8. Khởi Động Development Server
 
 Chạy ứng dụng ở chế độ development với hot-reload:
 

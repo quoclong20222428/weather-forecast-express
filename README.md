@@ -421,7 +421,35 @@ Hoặc nếu đã có migrations:
 npx prisma migrate deploy
 ```
 
-#### 3.3. (Tùy chọn) Xem database với Prisma Studio:
+#### 3.3. (Tùy chọn) Import seed data cho tính năng location search:
+
+##### Bước 1: Tải file seed data
+Download file `seed_location.ndjson` từ Google Drive:
+👉 [Download seed_location.ndjson](https://drive.google.com/file/d/1229nlkpceRMzy3vb1oErkJQ71AQDeVDw/view?usp=sharing)
+
+##### Bước 2: Đặt file vào thư mục
+Sau khi tải về, đặt file vào:
+```
+prisma/seeds/seed_location.ndjson
+```
+
+##### Bước 3: Enable unaccent extension trong PostgreSQL
+```powershell
+# Nếu dùng Docker
+docker exec -it weather_postgres psql -U postgres -d weather_db -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+
+# Hoặc chạy trực tiếp trong psql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+##### Bước 4: Import data
+```powershell
+npm run seed
+```
+
+> **Lưu ý:** File chứa ~2 triệu địa điểm (535MB), quá trình import có thể mất vài phút. Extension `unaccent` cần thiết để hỗ trợ tìm kiếm tiếng Việt không dấu.
+
+#### 3.4. (Tùy chọn) Xem database với Prisma Studio:
 
 ```powershell
 npx prisma studio
