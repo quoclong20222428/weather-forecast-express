@@ -6,5 +6,6 @@ export const getRandomizedCacheTTL = (min: number, max: number): number => {
 };
 
 export const API_BASE = process.env.OW_BASE_URL;
+export const API_PRO_BASE = process.env.OW_PRO_BASE_URL;
 export const apiKey = process.env.OW_API_KEY;
 export const CACHE_TTL = getRandomizedCacheTTL(-20, 20);

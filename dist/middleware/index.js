@@ -6,4 +6,3 @@ export { cacheCities } from "./cacheCities.js";
 export { cacheWeatherByLatLonMiddleware } from "./cacheWeather.js";
 export { cacheSavedCityWeatherMiddleware, deleteCachedUnsavedCity } from "./cacheSavedCities.js";
 export { cacheDailyWeatherMiddleware } from "./cacheDailyWeather.js";
-export { cacheDailyHourWeather } from "./cacheDailyHourWeather.js";

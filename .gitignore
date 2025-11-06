@@ -4,3 +4,8 @@ node_modules
 
 /generated/prisma
 /prisma/migrations
+
+# Ignore large seed data files
+/prisma/seeds/*.ndjson
+/prisma/seeds/*.json
+/prisma/seeds/*.csv

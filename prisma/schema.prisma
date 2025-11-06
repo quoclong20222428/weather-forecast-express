@@ -13,3 +13,15 @@ model City {
   lat          Float
   lon          Float
 }
+
+model Location {
+  id           Int                      @id @default(autoincrement())
+  display_name String                   @db.Text
+  country      String?                  @db.Char(2)
+  lat          Float                    @db.DoublePrecision // Vĩ độ (latitude) -90 đến 90
+  lon          Float                    @db.DoublePrecision // Kinh độ (longitude) -180 đến 180
+  search_vector Unsupported("tsvector")? // PostgreSQL full-text search vector
+
+  @@index([display_name], map: "idx_display_name_prefix") // Fallback cho prefix search
+  @@index([search_vector], type: Gin, map: "idx_search_vector_gin") // GIN index cho full-text search (RẤT NHANH với 2M+ records)
+}
