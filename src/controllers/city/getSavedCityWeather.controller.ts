@@ -1,16 +1,22 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { HttpError } from "../../middleware/index.js";
+import { AuthRequest } from "../../middleware/auth/index.js";
 import { getSavedCityWeather as getSavedCityWeatherService } from "../../services/weather/index.js";
 
-export const getSavedCityWeather = async (req: Request, res: Response, next: NextFunction) => {
+export const getSavedCityWeather = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
 
     if (Number.isNaN(id)) {
         return next(new HttpError(400, "ID thành phố không hợp lệ"));
     }
 
+    const userId = req.user?.userId;
+    if (!userId) {
+        return next(new HttpError(401, "Unauthorized"));
+    }
+
     try {
-        const weatherData = await getSavedCityWeatherService(id);
+        const weatherData = await getSavedCityWeatherService(userId, id);
         res.json(weatherData);
     } catch (err) {
         if (err instanceof Error) {

@@ -10,3 +10,10 @@ dist
 /prisma/seeds/*.ndjson
 /prisma/seeds/*.json
 /prisma/seeds/*.csv
+
+# OAuth setup guide (contains sensitive setup information)
+OAUTH2_SETUP_GUIDE.md
+
+# OAuth documentation (internal reference only)
+OAUTH2_COMPLETE_GUIDE.md
+OAUTH2_COMMON_ERRORS.md

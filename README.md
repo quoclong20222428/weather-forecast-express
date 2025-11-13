@@ -530,20 +530,6 @@ export async function searchLocationsFullText(
 }
 ```
 
-### 📊 Benchmark Results
-
-Test với 3,637,189 records:
-
-| Search Term | Records Found | Response Time | Index Used |
-|-------------|---------------|---------------|------------|
-| "hanoi" | 1,247 | 18ms | GIN |
-| "new york" | 856 | 23ms | GIN |
-| "lâm đồng" | 143 | 15ms | GIN |
-| "tokyo japan" | 2,341 | 31ms | GIN |
-| "paris france" | 1,892 | 27ms | GIN |
-
-**Average Response Time: < 25ms** 🚀
-
 ### 🎯 Best Practices
 
 1. ✅ **Always use GIN index** cho tsvector columns

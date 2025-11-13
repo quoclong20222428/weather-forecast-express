@@ -11,6 +11,14 @@ export interface LocationSearchResult {
     rank?: number; // Điểm xếp hạng độ liên quan (cho full-text search)
 }
 
+const removeVietnameseTones = (str: string): string => {
+  return str
+    .normalize("NFD") // Tách các ký tự có dấu thành ký tự gốc + dấu
+    .replace(/[\u0300-\u036f]/g, "") // Xóa các dấu thanh
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
 /**
  * Tìm kiếm địa điểm với PostgreSQL Full-Text Search
  * TỐI ƯU CHO 2 TRIỆU+ RECORDS với GIN index
@@ -24,7 +32,7 @@ export async function searchLocationsFullText(
     limit: number = 8
 ): Promise<LocationSearchResult[]> {
     // Làm sạch search term (giữ nguyên để hỗ trợ tiếng Việt và tiếng Anh)
-    const cleanedTerm = searchTerm.trim();
+    const cleanedTerm = removeVietnameseTones(searchTerm.trim());
 
     if (!cleanedTerm) {
         return [];
@@ -58,100 +66,100 @@ export async function searchLocationsFullText(
  * Tìm kiếm PREFIX (cho autocomplete)
  * Dùng khi user đang gõ (ví dụ: "han" → "Hanoi", "Hanam")
  */
-export async function searchLocationsByPrefix(
-    prefix: string,
-    limit: number = 10
-): Promise<LocationSearchResult[]> {
-    if (!prefix || prefix.length < 2) {
-        return [];
-    }
+// export async function searchLocationsByPrefix(
+//     prefix: string,
+//     limit: number = 10
+// ): Promise<LocationSearchResult[]> {
+//     if (!prefix || prefix.length < 2) {
+//         return [];
+//     }
 
-    try {
-        // Prefix search với ILIKE + index
-        const results = await prisma.$queryRaw<LocationSearchResult[]>`
-      SELECT 
-        id,
-        display_name,
-        country,
-        lat,
-        lon
-      FROM "Location"
-      WHERE display_name ILIKE ${prefix + "%"}
-      ORDER BY display_name ASC
-      LIMIT ${limit}
-    `;
+//     try {
+//         // Prefix search với ILIKE + index
+//         const results = await prisma.$queryRaw<LocationSearchResult[]>`
+//       SELECT 
+//         id,
+//         display_name,
+//         country,
+//         lat,
+//         lon
+//       FROM "Location"
+//       WHERE display_name ILIKE ${prefix + "%"}
+//       ORDER BY display_name ASC
+//       LIMIT ${limit}
+//     `;
 
-        return results;
-    } catch (error) {
-        console.error("Prefix search error:", error);
-        return [];
-    }
-}
+//         return results;
+//     } catch (error) {
+//         console.error("Prefix search error:", error);
+//         return [];
+//     }
+// }
 
 /**
  * Tìm kiếm HYBRID (kết hợp full-text + prefix)
  * TỐT NHẤT cho UX: Vừa chính xác, vừa linh hoạt
  */
-export async function searchLocationsHybrid(
-    searchTerm: string,
-    limit: number = 20
-): Promise<LocationSearchResult[]> {
-    const cleanedTerm = searchTerm.trim();
+// export async function searchLocationsHybrid(
+//     searchTerm: string,
+//     limit: number = 20
+// ): Promise<LocationSearchResult[]> {
+//     const cleanedTerm = searchTerm.trim();
 
-    if (!cleanedTerm || cleanedTerm.length < 2) {
-        return [];
-    }
+//     if (!cleanedTerm || cleanedTerm.length < 2) {
+//         return [];
+//     }
 
-    try {
-        // Nếu search term ngắn (< 4 ký tự), ưu tiên prefix search
-        if (cleanedTerm.length < 4) {
-            return searchLocationsByPrefix(cleanedTerm, limit);
-        }
+//     try {
+//         // Nếu search term ngắn (< 4 ký tự), ưu tiên prefix search
+//         if (cleanedTerm.length < 4) {
+//             return searchLocationsByPrefix(cleanedTerm, limit);
+//         }
 
-        // Nếu search term dài, dùng full-text search với plainto_tsquery
-        const results = await prisma.$queryRaw<LocationSearchResult[]>`
-      WITH fts_results AS (
-        -- Full-text search results với plainto_tsquery và ts_rank_cd
-        SELECT 
-          id,
-          display_name,
-          country,
-          lat,
-          lon,
-          ts_rank_cd(search_vector, plainto_tsquery('simple', ${cleanedTerm})) * 2 as rank,
-          1 as source
-        FROM "Location"
-        WHERE search_vector @@ plainto_tsquery('simple', ${cleanedTerm})
-      ),
-      prefix_results AS (
-        -- Prefix search results (lower priority)
-        SELECT 
-          id,
-          display_name,
-          country,
-          lat,
-          lon,
-          1.0 as rank,
-          2 as source
-        FROM "Location"
-        WHERE display_name ILIKE ${cleanedTerm + "%"}
-        AND id NOT IN (SELECT id FROM fts_results)
-      )
-      SELECT id, display_name, country, lat, lon, rank FROM (
-        SELECT * FROM fts_results
-        UNION ALL
-        SELECT * FROM prefix_results
-      ) combined
-      ORDER BY rank DESC
-      LIMIT ${limit}
-    `;
+//         // Nếu search term dài, dùng full-text search với plainto_tsquery
+//         const results = await prisma.$queryRaw<LocationSearchResult[]>`
+//       WITH fts_results AS (
+//         -- Full-text search results với plainto_tsquery và ts_rank_cd
+//         SELECT 
+//           id,
+//           display_name,
+//           country,
+//           lat,
+//           lon,
+//           ts_rank_cd(search_vector, plainto_tsquery('simple', ${cleanedTerm})) * 2 as rank,
+//           1 as source
+//         FROM "Location"
+//         WHERE search_vector @@ plainto_tsquery('simple', ${cleanedTerm})
+//       ),
+//       prefix_results AS (
+//         -- Prefix search results (lower priority)
+//         SELECT 
+//           id,
+//           display_name,
+//           country,
+//           lat,
+//           lon,
+//           1.0 as rank,
+//           2 as source
+//         FROM "Location"
+//         WHERE display_name ILIKE ${cleanedTerm + "%"}
+//         AND id NOT IN (SELECT id FROM fts_results)
+//       )
+//       SELECT id, display_name, country, lat, lon, rank FROM (
+//         SELECT * FROM fts_results
+//         UNION ALL
+//         SELECT * FROM prefix_results
+//       ) combined
+//       ORDER BY rank DESC
+//       LIMIT ${limit}
+//     `;
 
-        return results;
-    } catch (error) {
-        console.error("Hybrid search error:", error);
-        return fallbackSearch(searchTerm, limit);
-    }
-}
+//         return results;
+//     } catch (error) {
+//         console.error("Hybrid search error:", error);
+//         return fallbackSearch(searchTerm, limit);
+//     }
+// }
 
 /**
  * Fallback search với ILIKE (khi full-text search lỗi)

@@ -13,6 +13,9 @@ export const getWeatherCityByLatLon = async (req: Request, res: Response, next: 
 
     try {
         const weather = await getWeatherByLatLon(latNum, lonNum);
+        weather.coord.lat = latNum;
+        weather.coord.lon = lonNum;
+
         res.json(weather);
     } catch (error) {
         if (error instanceof Error) {

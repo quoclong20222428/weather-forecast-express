@@ -14,9 +14,9 @@ import {
   cacheDailyHourWeather,
   cacheDailyWeatherMiddleware,
   cacheSavedCityWeatherMiddleware,
-  cacheWeatherByLatLonMiddleware,
-  deleteCachedUnsavedCity
+  cacheWeatherByLatLonMiddleware
 } from "../middleware/index.js";
+import { authMiddleware } from "../middleware/auth/index.js";
 const router = Router();
 
 /* --------------------- Route cố định --------------------- */
@@ -29,19 +29,19 @@ router.get("/by-lat-lon/:lat/:lon/daily", cacheDailyWeatherMiddleware, getDailyW
 // Lấy dự báo thời tiết theo giờ trong 6 giờ theo tọa độ lat/lon (không lưu)
 router.get("/by-lat-lon/:lat/:lon/hourly", cacheDailyHourWeather, getDailyHourWeatherController);
 
-// Danh sách thành phố đã lưu
-router.get("/", cacheCities, listCities);
+// Danh sách thành phố đã lưu (yêu cầu authentication)
+router.get("/all-cities", authMiddleware, cacheCities, listCities);
 
-// Lấy thời tiết của thành phố đã lưu theo id (từ database)
-router.get("/by-id/:id", cacheSavedCityWeatherMiddleware, getSavedCityWeather);
+// Lấy thời tiết của thành phố đã lưu theo id (yêu cầu authentication)
+router.get("/by-id/:id", authMiddleware, cacheSavedCityWeatherMiddleware, getSavedCityWeather);
 
 router.get("/search/:q", searchLocations);
 
 /* --------------------- Route thao tác với thành phố --------------------- */
-// Lưu thành phố
-router.post("/save/:lat/:lon/:name", cacheSavedCityWeatherMiddleware, saveCity);
+// Lưu thành phố (yêu cầu authentication)
+router.post("/save/:lat/:lon/:name", authMiddleware, cacheSavedCityWeatherMiddleware, saveCity);
 
-// Xóa thành phố đã lưu
-router.delete("/by-id/:id", unsaveCity, deleteCachedUnsavedCity);
+// Xóa thành phố đã lưu (yêu cầu authentication)
+router.delete("/by-id/:id", authMiddleware, unsaveCity);
 
 export default router;

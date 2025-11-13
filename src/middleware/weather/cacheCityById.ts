@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { initializeRedisClient } from '../utils/redisClient.js';
+import { initializeRedisClient } from '../../utils/redisClient.js';
 
 export const cacheCityByIdMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);

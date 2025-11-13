@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { initializeRedisClient } from "../utils/redisClient.js";
+import { initializeRedisClient } from "../../utils/redisClient.js";
 
 export const cacheDailyHourWeather = async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -20,6 +20,8 @@ export const getDailyWeatherController = async (
 
     // Lấy dữ liệu daily weather
     const dailyWeather = await getDailyWeather(latNum, lonNum);
+    dailyWeather.city.coord.lat = latNum;
+    dailyWeather.city.coord.lon = lonNum;
 
     res.json(dailyWeather);
   } catch (error) {

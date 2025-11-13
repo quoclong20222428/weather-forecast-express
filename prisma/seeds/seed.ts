@@ -14,12 +14,14 @@ async function setupSearchVectorTrigger() {
     DROP TRIGGER IF EXISTS location_search_vector_trigger ON "Location";
   `);
 
+  await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS unaccent;`);
+
   // 2️⃣ Tạo hoặc cập nhật hàm
   await prisma.$executeRawUnsafe(`
     CREATE OR REPLACE FUNCTION update_location_search_vector()
     RETURNS trigger AS $$
     BEGIN
-      NEW.search_vector := to_tsvector('simple', coalesce(NEW.display_name, ''));
+      NEW.search_vector := to_tsvector('simple', unaccent(NEW.display_name));
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;

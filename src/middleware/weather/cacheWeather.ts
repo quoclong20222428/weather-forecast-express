@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { OpenWeatherResponse } from "../services/weather/index.js";
-import { initializeRedisClient } from "../utils/redisClient.js";
+import { OpenWeatherResponse } from "../../services/weather/index.js";
+import { initializeRedisClient } from "../../utils/redisClient.js";
 
 export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const { lat, lon, name} = req.query;

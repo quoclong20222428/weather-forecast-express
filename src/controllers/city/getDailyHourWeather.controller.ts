@@ -13,6 +13,8 @@ export const getDailyHourWeatherController = async (req: Request, res: Response,
         }
 
         const dailyHour = await getDailyHourWeather(latNum, lonNum);
+        dailyHour.city.coord.lat = latNum;
+        dailyHour.city.coord.lon = lonNum;
 
         res.json(dailyHour);
     } catch (error) {

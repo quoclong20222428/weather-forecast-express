@@ -7,11 +7,40 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model User {
+  id           String             @id @default(uuid())
+  username     String
+  email        String             @unique
+  avatar       String?            // URL ảnh đại diện từ OAuth provider
+  provider     String             // "google" | "facebook" | "github"
+  providerId   String             @map("provider_id") // ID từ OAuth provider
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  savedCities  UserCity[]
+
+  @@unique([provider, providerId])
+  @@map("users")
+}
+
 model City {
   id           Int      @id @default(autoincrement())
   name         String
   lat          Float
   lon          Float
+  
+  savedByUsers UserCity[]
+}
+
+model UserCity {
+  userId       String
+  cityId       Int
+  savedAt      DateTime @default(now()) @map("saved_at")
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city         City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, cityId])
+  @@map("user_cities")
 }
 
 model Location {
