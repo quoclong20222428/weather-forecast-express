@@ -1,5 +1,5 @@
 import axios from "axios";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { setToCache, setEmptyCache } from "../../utils/cacheHelper.js";
 import { DailyWeatherResponse } from "./types.js";
 import { API_BASE, apiKey, CACHE_TTL } from "./utils.js";
 
@@ -18,12 +18,13 @@ export const getDailyWeather = async (
     // Gọi API OpenWeatherMap
     const res = await axios.get<DailyWeatherResponse>(url);
 
-    // Lưu vào Redis cache
-    const redisClient = await initializeRedisClient();
+    // Lưu vào Redis cache (chống cache avalanche & penetration)
     const cacheKey = `weather:daily:${lat}:${lon}:cnt${cnt}`;
 
     if (res.data) {
-        await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(res.data));
+        await setToCache(cacheKey, res.data, CACHE_TTL);
+    } else {
+        await setEmptyCache(cacheKey, CACHE_TTL);
     }
 
     return res.data;

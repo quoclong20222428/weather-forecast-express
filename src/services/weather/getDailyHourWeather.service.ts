@@ -1,8 +1,7 @@
 import axios from "axios";
 import { DailyHourWeatherResponse } from "./types.js";
-import { API_PRO_BASE, apiKey } from "./utils.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
-
+import { API_PRO_BASE, apiKey, CACHE_TTL } from "./utils.js";
+import { setToCache, setEmptyCache } from "../../utils/cacheHelper.js";
 
 export const getDailyHourWeather = async (lat: number, lon: number): Promise<DailyHourWeatherResponse> => {
     if (!apiKey) {
@@ -14,12 +13,13 @@ export const getDailyHourWeather = async (lat: number, lon: number): Promise<Dai
     
     const res = await axios.get<DailyHourWeatherResponse>(url);
 
-    const redisClient = await initializeRedisClient();
-    // const cacheKey = `weather:daily-hour:${lat}:${lon}:cnt${cnt}`;
+    // Lưu vào Redis cache (chống cache avalanche & penetration)
     const cacheKey = `weather:daily-hour:${lat}:${lon}`;
 
     if (res.data) {
-        await redisClient.setEx(cacheKey, 3600, JSON.stringify(res.data));
+        await setToCache(cacheKey, res.data, CACHE_TTL);
+    } else {
+        await setEmptyCache(cacheKey, CACHE_TTL);
     }
 
     return res.data;

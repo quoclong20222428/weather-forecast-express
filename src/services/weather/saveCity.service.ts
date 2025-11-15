@@ -1,5 +1,6 @@
 import { prisma } from "../../config/db.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { deleteCache } from "../../utils/cacheHelper.js";
+import { getSavedCities } from "./getSavedCities.service.js";
 
 export const saveCity = async (userId: string, lat: number, lon: number, name: string) => {
   // Tìm hoặc tạo city
@@ -39,7 +40,7 @@ export const saveCity = async (userId: string, lat: number, lon: number, name: s
     };
   }
 
-  // Tạo liên kết giữa user và city
+  // 1. Cập nhật database trước (Write-Through Cache Pattern)
   await prisma.userCity.create({
     data: {
       userId: userId,
@@ -47,9 +48,12 @@ export const saveCity = async (userId: string, lat: number, lon: number, name: s
     }
   });
 
-  // Xóa cache danh sách cities của user này
-  const redisClient = await initializeRedisClient();
-  await redisClient.del(`cities:saved:${userId}`);
+  // 2. Xóa cache cũ
+  const cacheKey = `cities:saved:${userId}`;
+  await deleteCache(cacheKey);
+
+  // 3. Tạo cache mới ngay lập tức (warm up cache)
+  await getSavedCities(userId);
 
   return {
     city: city,

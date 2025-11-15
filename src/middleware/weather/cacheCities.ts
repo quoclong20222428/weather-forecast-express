@@ -1,7 +1,12 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "../auth/index.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { getFromCache } from "../../utils/cacheHelper.js";
 
+/**
+ * Middleware cache cho danh sách saved cities
+ * Chống cache avalanche với TTL jitter
+ * Chống cache penetration với NULL cache
+ */
 export const cacheCities = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?.userId;
@@ -9,19 +14,18 @@ export const cacheCities = async (req: AuthRequest, res: Response, next: NextFun
             return next(); // Không có userId, skip cache
         }
 
-        const key = `cities:saved:${userId}`;
-        const redisClient = await initializeRedisClient();
-        const cached = await redisClient.get(key);
+        const cacheKey = `cities:saved:${userId}`;
+        const cachedCities = await getFromCache<any[]>(cacheKey);
 
-        if (cached) {
-            console.log(`Cache hit: cities list for user ${userId}`);
-            return res.json(JSON.parse(cached));
+        if (cachedCities !== null) {
+            // console.log(`✅ Cache HIT: saved cities for user ${userId}`);
+            return res.json(cachedCities);
         }
 
-        console.log(`Cache miss: cities list for user ${userId}`);
+        // console.log(`❌ Cache MISS: saved cities for user ${userId}`);
         next();
     } catch (error) {
-        console.error("Redis error: ", error);
+        console.error("❌ Redis error: ", error);
         next();
     }
 };

@@ -44,7 +44,7 @@ export const googleCallbackController = async (req: Request, res: Response, next
     const userData = {
       id: user.id,
       email: user.email,
-      username: user.username,
+      name: user.username, // Frontend expects 'name' field
       avatar: user.avatar || null,
       provider: user.provider,
     };

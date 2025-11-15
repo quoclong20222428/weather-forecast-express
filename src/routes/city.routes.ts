@@ -33,15 +33,15 @@ router.get("/by-lat-lon/:lat/:lon/hourly", cacheDailyHourWeather, getDailyHourWe
 router.get("/all-cities", authMiddleware, cacheCities, listCities);
 
 // Lấy thời tiết của thành phố đã lưu theo id (yêu cầu authentication)
-router.get("/by-id/:id", authMiddleware, cacheSavedCityWeatherMiddleware, getSavedCityWeather);
+router.get("/by-id/:id/weather", authMiddleware, cacheSavedCityWeatherMiddleware, getSavedCityWeather);
 
 router.get("/search/:q", searchLocations);
 
 /* --------------------- Route thao tác với thành phố --------------------- */
 // Lưu thành phố (yêu cầu authentication)
-router.post("/save/:lat/:lon/:name", authMiddleware, cacheSavedCityWeatherMiddleware, saveCity);
+router.post("/save/:name/:lat/:lon/", authMiddleware, cacheSavedCityWeatherMiddleware, saveCity);
 
 // Xóa thành phố đã lưu (yêu cầu authentication)
-router.delete("/by-id/:id", authMiddleware, unsaveCity);
+router.delete("/by-id/:id/delete", authMiddleware, unsaveCity);
 
 export default router;

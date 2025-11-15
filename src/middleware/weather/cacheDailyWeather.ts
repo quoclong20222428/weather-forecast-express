@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { getFromCache, CACHE_EMPTY_MARKER } from "../../utils/cacheHelper.js";
 
 export const cacheDailyWeatherMiddleware = async (
   req: Request,
@@ -10,17 +10,20 @@ export const cacheDailyWeatherMiddleware = async (
     const { lat, lon } = req.params;
     const cnt: number = 7;
 
-    const redisClient = await initializeRedisClient();
     const cacheKey = `weather:daily:${lat}:${lon}:cnt${cnt}`;
+    const cachedData = await getFromCache<any>(cacheKey);
 
-    const cachedData = await redisClient.get(cacheKey);
-
-    if (cachedData) {
-      console.log(`✅ Cache HIT: ${cacheKey}`);
-      return res.json(JSON.parse(cachedData));
+    if (cachedData === CACHE_EMPTY_MARKER) {
+      // console.log(`🔴 Cache EMPTY HIT: ${cacheKey}`);
+      return res.status(404).json({ error: "Daily weather data not found" });
     }
 
-    console.log(`❌ Cache MISS: ${cacheKey}`);
+    if (cachedData !== null) {
+      // console.log(`✅ Cache HIT: ${cacheKey}`);
+      return res.json(cachedData);
+    }
+
+    // console.log(`❌ Cache MISS: ${cacheKey}`);
     next();
   } catch (error) {
     console.error("Cache middleware error:", error);

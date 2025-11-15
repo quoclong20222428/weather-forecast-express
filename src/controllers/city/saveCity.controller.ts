@@ -4,11 +4,12 @@ import { AuthRequest } from "../../middleware/auth/index.js";
 import { saveCity as saveCityService } from "../../services/weather/index.js";
 
 export const saveCity = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const { lat, lon, name } = req.body as { lat: number; lon: number; name: string };
+    // Đọc từ URL params thay vì body
+    const { name, lat, lon } = req.params as { name: string; lat: string; lon: string; };
     const latNum = Number(lat), lonNum = Number(lon);
 
     if (
-        lat == null || lon == null || name == null ||
+        !latNum || !lonNum ||
         Number.isNaN(latNum) || Number.isNaN(lonNum) ||
         latNum < -90 || latNum > 90 ||
         lonNum < -180 || lonNum > 180 ||

@@ -1,6 +1,5 @@
 import { prisma } from "../../config/db.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
-import { getCityById } from "./getCityById.service.js";
+import { setToCache, setEmptyCache } from "../../utils/cacheHelper.js";
 import { getWeatherByLatLon } from "./getWeatherByLatLon.service.js";
 import { CACHE_TTL } from "./utils.js";
 
@@ -19,6 +18,9 @@ export const getSavedCityWeather = async (userId: string, cityId: number) => {
   });
 
   if (!userCity) {
+    // Cache empty để chống penetration
+    const cacheKey = `weather:saved-city:${userId}:${cityId}`;
+    await setEmptyCache(cacheKey, CACHE_TTL);
     throw new Error("Không tìm thấy thành phố trong danh sách đã lưu của bạn");
   }
 
@@ -34,9 +36,9 @@ export const getSavedCityWeather = async (userId: string, cityId: number) => {
     savedCityId: cityId,  // Thêm id của city đã lưu để reference
   };
 
-  const redisClient = await initializeRedisClient();
+  // 4. Cache kết quả với TTL jitter (chống avalanche)
   const cacheKey = `weather:saved-city:${userId}:${cityId}`;
-  await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(weatherWithSavedName));
+  await setToCache(cacheKey, weatherWithSavedName, CACHE_TTL);
 
   return weatherWithSavedName;
 };

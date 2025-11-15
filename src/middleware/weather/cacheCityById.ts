@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { initializeRedisClient } from '../../utils/redisClient.js';
+import { getFromCache, CACHE_EMPTY_MARKER } from '../../utils/cacheHelper.js';
 
 export const cacheCityByIdMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);
@@ -8,17 +8,21 @@ export const cacheCityByIdMiddleware = async (req: Request, res: Response, next:
   }
 
   try {
-    const redisClient = await initializeRedisClient();
     const cacheKey = `city:${id}`;
-
-    const cached = await redisClient.get(cacheKey);
-    if (cached) {
-      console.log(`Cache hit for city:${id}`);
-      return res.json(JSON.parse(cached));
+    const cached = await getFromCache<any>(cacheKey);
+    
+    if (cached === CACHE_EMPTY_MARKER) {
+      // console.log(`🔴 Cache EMPTY HIT for city:${id}`);
+      return res.status(404).json({ error: "City not found" });
+    }
+    
+    if (cached !== null) {
+      // console.log(`✅ Cache HIT for city:${id}`);
+      return res.json(cached);
     }
 
-    // Attach redis client to request for controller to use
-    res.locals.redisClient = redisClient;
+    // console.log(`❌ Cache MISS for city:${id}`);
+    // Attach cache key to response locals for controller to use
     res.locals.cacheKey = cacheKey;
     next();
   } catch (err) {

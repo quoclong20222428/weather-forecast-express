@@ -1,5 +1,6 @@
 import { prisma } from "../../config/db.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { deleteCache, deleteCacheByPattern } from "../../utils/cacheHelper.js";
+import { getSavedCities } from "./getSavedCities.service.js";
 
 export const unsaveCity = async (userId: string, cityId: number) => {
   // Kiểm tra xem user có lưu city này không
@@ -16,7 +17,7 @@ export const unsaveCity = async (userId: string, cityId: number) => {
     return false;
   }
 
-  // Xóa liên kết giữa user và city
+  // 1. Cập nhật database trước (Write-Through Cache Pattern)
   await prisma.userCity.delete({
     where: {
       userId_cityId: {
@@ -26,10 +27,15 @@ export const unsaveCity = async (userId: string, cityId: number) => {
     }
   });
 
-  // Xóa cache
-  const redisClient = await initializeRedisClient();
-  await redisClient.del(`cities:saved:${userId}`);
-  await redisClient.del(`weather:saved-city:${cityId}`);
+  // 2. Xóa cache liên quan
+  const cacheKey = `cities:saved:${userId}`;
+  await deleteCache(cacheKey);
+  
+  // Xóa cache weather của city này cho user
+  await deleteCacheByPattern(`weather:saved-city:${userId}:${cityId}`);
+
+  // 3. Tạo cache mới ngay lập tức (warm up cache)
+  await getSavedCities(userId);
 
   return true;
 };

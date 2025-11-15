@@ -34,7 +34,7 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
       user: {
         id: user.id,
         email: user.email,
-        username: user.username,
+        name: user.username, // Frontend expects 'name' field
         avatar: user.avatar,
         provider: user.provider,
         createdAt: user.createdAt,

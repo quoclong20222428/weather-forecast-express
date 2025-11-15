@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { OpenWeatherResponse } from "../../services/weather/index.js";
-import { initializeRedisClient } from "../../utils/redisClient.js";
+import { getFromCache, CACHE_EMPTY_MARKER } from "../../utils/cacheHelper.js";
 
 export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const { lat, lon, name} = req.query;
@@ -9,14 +9,21 @@ export const cacheWeatherByLatLonMiddleware = async (req: Request, res: Response
     }
 
     const cacheKey = `weather:place:${name}:latlon:${lat}:${lon}`;
-    const redisClient = await initializeRedisClient();
 
     try {
-        const cachedData = await redisClient.get(cacheKey);
-        if (cachedData) {
-            const weatherData: OpenWeatherResponse = JSON.parse(cachedData);
-            return res.json(weatherData);
+        const cachedData = await getFromCache<OpenWeatherResponse>(cacheKey);
+        
+        if (cachedData === CACHE_EMPTY_MARKER) {
+            // Empty cache - không có data
+            return res.status(404).json({ error: "Weather data not found" });
         }
+        
+        if (cachedData !== null) {
+            // console.log(`✅ Cache HIT: weather for ${name}`);
+            return res.json(cachedData);
+        }
+        
+        // console.log(`❌ Cache MISS: weather for ${name}`);
         return next();
     } catch (error) {
         console.error("Error fetching weather data from cache:", error);
