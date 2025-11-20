@@ -2,8 +2,14 @@ import { Request, Response, NextFunction } from "express";
 
 export const logoutController = (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Xóa cookie
+    // Clear both access token and refresh token cookies
     res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.clearCookie("refresh_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

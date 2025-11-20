@@ -17,3 +17,4 @@ OAUTH2_SETUP_GUIDE.md
 # OAuth documentation (internal reference only)
 OAUTH2_COMPLETE_GUIDE.md
 OAUTH2_COMMON_ERRORS.md
+TOKEN_IMPLEMENTATION_GUIDE.md

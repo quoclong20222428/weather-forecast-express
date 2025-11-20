@@ -4,6 +4,7 @@ import {
   googleCallbackController, 
   // facebookCallbackController, 
   githubCallbackController,
+  refreshTokenController,
   logoutController,
   getMeController,
   deleteAccountController
@@ -73,6 +74,10 @@ router.get(
   }),
   githubCallbackController
 );
+
+// ==================== REFRESH TOKEN ====================
+// POST /api/auth/refresh - Lấy access token mới từ refresh token
+router.post("/refresh", refreshTokenController);
 
 // ==================== LOGOUT ====================
 // POST /api/auth/logout - Logout và xóa cookie

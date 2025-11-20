@@ -8,9 +8,9 @@ import { findOrCreateUser } from "../services/auth/index.js";
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:5001/api/auth/google/callback",
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL!,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -30,41 +30,13 @@ passport.use(
   )
 );
 
-// ==================== FACEBOOK OAUTH (COMMENTED - NOT READY) ====================
-/* Facebook OAuth Strategy - Tạm thời disable
-passport.use(
-  new FacebookStrategy(
-    {
-      clientID: process.env.FACEBOOK_CLIENT_ID || "",
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
-      callbackURL: process.env.FACEBOOK_CALLBACK_URL || "http://localhost:5001/api/auth/facebook/callback",
-      profileFields: ["id", "displayName", "emails", "photos"],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const user = await findOrCreateUser({
-          provider: "facebook",
-          providerId: profile.id,
-          email: profile.emails?.[0]?.value || "",
-          username: profile.displayName || "Facebook User",
-          avatar: profile.photos?.[0]?.value,
-        });
-        done(null, { userId: user.id, email: user.email });
-      } catch (error) {
-        done(error as Error);
-      }
-    }
-  )
-);
-*/
-
 // GitHub OAuth Strategy
 passport.use(
   new GitHubStrategy(
     {
-      clientID: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      callbackURL: process.env.GITHUB_CALLBACK_URL || "http://localhost:5001/api/auth/github/callback",
+      clientID: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      callbackURL: process.env.GITHUB_CALLBACK_URL!,
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {

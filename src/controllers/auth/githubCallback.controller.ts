@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { generateToken } from "../../services/auth/index.js";
+import { generateAccessToken, generateRefreshToken } from "../../services/auth/index.js";
 import { prisma } from "../../config/db.js";
 
 export const githubCallbackController = async (req: Request, res: Response, next: NextFunction) => {
@@ -7,7 +7,7 @@ export const githubCallbackController = async (req: Request, res: Response, next
     const authUser = req.user as any;
 
     if (!authUser || !authUser.userId) {
-      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/login?error=auth_failed`);
+      return res.redirect(`${process.env.CLIENT_URL!}/login?error=auth_failed`);
     }
 
     // Fetch full user data from database
@@ -23,28 +23,41 @@ export const githubCallbackController = async (req: Request, res: Response, next
     });
 
     if (!user) {
-      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/login?error=user_not_found`);
+      return res.redirect(`${process.env.CLIENT_URL!}/login?error=user_not_found`);
     }
 
-    // Generate JWT token
-    const token = generateToken({
+    // Generate Access Token (2 hours) and Refresh Token (10 hours)
+    const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
     });
 
-    // Set httpOnly cookie
-    res.cookie("auth_token", token, {
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // Set Access Token in regular cookie (can also be in localStorage on frontend)
+    res.cookie("auth_token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    });
+
+    // Set Refresh Token in HttpOnly cookie (more secure)
+    res.cookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 60 * 1000, // 10 hours
     });
 
     // Chuẩn bị user data để gửi về frontend
     const userData = {
       id: user.id,
       email: user.email,
-      name: user.username, // Frontend expects 'name' field
+      name: user.username,
       avatar: user.avatar || null,
       provider: user.provider,
     };
@@ -52,8 +65,9 @@ export const githubCallbackController = async (req: Request, res: Response, next
     // URL encode user JSON
     const encodedUser = encodeURIComponent(JSON.stringify(userData));
 
-    // Redirect về client với user info và token
-    res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/callback?success=true&token=${token}&provider=${user.provider}&user=${encodedUser}`);
+    // Redirect về client với success flag
+    // Note: Frontend sẽ fetch user data từ /auth/me endpoint bằng httpOnly cookie
+    res.redirect(`${process.env.CLIENT_URL!}/auth/callback?success=true&user=${encodedUser}`);
   } catch (error) {
     next(error);
   }
