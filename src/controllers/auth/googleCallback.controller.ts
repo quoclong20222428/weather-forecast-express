@@ -53,7 +53,7 @@ export const googleCallbackController = async (req: Request, res: Response, next
       maxAge: 10 * 60 * 60 * 1000, // 10 hours
     });
 
-    // Chuẩn bị user data để gửi về frontend
+    // Set user data to localStorage via redirect with user data
     const userData = {
       id: user.id,
       email: user.email,
@@ -65,9 +65,9 @@ export const googleCallbackController = async (req: Request, res: Response, next
     // URL encode user JSON
     const encodedUser = encodeURIComponent(JSON.stringify(userData));
 
-    // Redirect về client với success flag
-    // Note: Frontend sẽ fetch user data từ /auth/me endpoint bằng httpOnly cookie
-    res.redirect(`${process.env.CLIENT_URL!}/auth/callback?success=true&user=${encodedUser}`);
+    // Redirect trực tiếp về homepage
+    // Frontend sẽ nhận user data từ URL params hoặc từ /auth/me endpoint bằng httpOnly cookie
+    res.redirect(`${process.env.CLIENT_URL!}/?success=true&user=${encodedUser}`);
   } catch (error) {
     next(error);
   }
