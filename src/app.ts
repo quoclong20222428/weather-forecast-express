@@ -21,7 +21,7 @@ app.use(express.static("public"));
 
 app.use(
 	cors({
-		origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "http://localhost:3000"],
+		origin: process.env.CORS_ORIGIN?.split(","),
 		credentials: true,
 	})
 );
@@ -31,6 +31,11 @@ app.use(passport.initialize());
 
 app.get("/", (req: Request, res: Response) => {
 	res.send("Weather Forecast API is running");
+});
+
+// Health check endpoint for Docker
+app.get("/health", (req: Request, res: Response) => {
+	res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.use("/api/auth", authRoutes);

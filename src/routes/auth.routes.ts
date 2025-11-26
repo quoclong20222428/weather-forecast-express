@@ -1,8 +1,7 @@
 import { Router } from "express";
 import passport from "../config/passport.js";
 import { 
-  googleCallbackController, 
-  // facebookCallbackController, 
+  googleCallbackController,
   githubCallbackController,
   refreshTokenController,
   logoutController,
@@ -32,28 +31,6 @@ router.get(
   }),
   googleCallbackController
 );
-
-// ==================== FACEBOOK OAUTH (DISABLED - NOT READY) ====================
-/* Facebook OAuth - Tạm thời disable
-// GET /api/auth/facebook - Bắt đầu Facebook OAuth flow
-router.get(
-  "/facebook",
-  passport.authenticate("facebook", { 
-    scope: ["email"],
-    session: false 
-  })
-);
-
-// GET /api/auth/facebook/callback - Callback sau khi Facebook xác thực
-router.get(
-  "/facebook/callback",
-  passport.authenticate("facebook", { 
-    session: false,
-    failureRedirect: "/login?error=facebook_auth_failed"
-  }),
-  facebookCallbackController
-);
-*/
 
 // ==================== GITHUB OAUTH ====================
 // GET /api/auth/github - Bắt đầu GitHub OAuth flow

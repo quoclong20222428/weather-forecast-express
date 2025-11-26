@@ -913,6 +913,182 @@ Invoke-RestMethod -Uri 'http://localhost:5001/' -Method Get
 Invoke-RestMethod -Uri 'http://localhost:5001/api/cities/by-lat-lon/21.0285/105.8542/weather' -Method Get
 ```
 
+## 🐳 Docker & Container Configuration
+
+Dự án cung cấp 3 cách cấu hình Docker khác nhau cho các giai đoạn khác nhau:
+
+### 1️⃣ Development Environment (Local Development)
+
+**File**: `docker-compose.yml` và `Dockerfile`
+
+Sử dụng khi phát triển ứng dụng cục bộ với PostgreSQL và Redis trong containers.
+
+**Features**:
+- ✅ Local PostgreSQL database với persistent volume
+- ✅ Local Redis cache với persistent volume
+- ✅ Auto-seed dữ liệu khi khởi động lần đầu
+- ✅ Hot reload khi code thay đổi
+- ✅ Isolated Docker network
+
+**Khởi động**:
+```powershell
+# Sử dụng PowerShell script
+.\docker.ps1 dev
+
+# Hoặc Docker Compose trực tiếp
+docker-compose -f docker-compose.yml up -d
+```
+
+**Dừng**:
+```powershell
+.\docker.ps1 dev-down
+# Hoặc
+docker-compose -f docker-compose.yml down
+```
+
+**Services**:
+```yaml
+- api:5001         # Node.js Express application
+- postgres:5432    # PostgreSQL database (postgres_data volume)
+- redis:6379       # Redis cache (redis_data volume)
+```
+
+---
+
+### 2️⃣ Alternate Development Environment
+
+**File**: `docker-compose.dev.yml`
+
+Cấu hình thay thế nếu cần khác biệt với main development setup.
+
+**Khởi động**:
+```powershell
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+---
+
+### 3️⃣ Production Environment (Cloud Deployment)
+
+**Files**: `docker-compose.prod.yml`, `Dockerfile.prod`, `docker-entrypoint.prod.sh`
+
+Sử dụng khi triển khai lên cloud platforms (Render, Azure, AWS, etc) với external managed services.
+
+**Features**:
+- ✅ API container chỉ (no local postgres/redis)
+- ✅ Kết nối tới external PostgreSQL (Aiven, Supabase)
+- ✅ Kết nối tới external Redis (Upstash)
+- ✅ Không auto-seed (dữ liệu đã seeded trong external DB)
+- ✅ Migration-only startup (không chạy seed script)
+- ✅ Separate network (`weather_prod_network`) để tránh conflict
+- ✅ Khác image name (`weather-forecast-api-prod:latest`)
+
+**Khởi động Local**:
+```powershell
+# Cần set .env.prod trước
+.\docker.ps1 prod
+
+# Hoặc Docker Compose trực tiếp
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+**Dừng**:
+```powershell
+.\docker.ps1 prod-down
+# Hoặc
+docker-compose -f docker-compose.prod.yml down
+```
+
+**Environment Variables Cần Set**:
+```env
+# External Database (Aiven, Supabase, Neon)
+DATABASE_URL="postgresql://user:password@host:port/dbname"
+
+# External Redis (Upstash)
+REDIS_URL="rediss://default:password@host:port"
+
+# Server
+PORT=5001
+NODE_ENV=production
+
+# OAuth & API Keys
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+OW_API_KEY=...
+JWT_SECRET=...
+CLIENT_URL=...
+```
+
+---
+
+### Docker Image Sizes & Performance
+
+| Configuration | Image Size | Build Time | Use Case |
+|---|---|---|---|
+| `Dockerfile` (dev) | 654MB | ~2-3 min | Local development |
+| `Dockerfile.prod` (prod) | 654MB | ~2-3 min | Cloud deployment |
+
+Both use multi-stage builds (Alpine Linux) để tối ưu hóa kích thước.
+
+---
+
+### Docker Management Script
+
+**File**: `docker.ps1` (PowerShell)
+
+PowerShell script quản lý tất cả Docker operations:
+
+```powershell
+# Development
+.\docker.ps1 dev              # Start dev environment
+.\docker.ps1 dev-down         # Stop dev environment
+.\docker.ps1 rebuild          # Rebuild dev image
+
+# Production
+.\docker.ps1 prod             # Start prod environment  
+.\docker.ps1 prod-down        # Stop prod environment
+
+# Other commands
+.\docker.ps1 logs-api         # View API logs
+.\docker.ps1 ps               # Show running containers
+.\docker.ps1 health           # Check health endpoints
+.\docker.ps1 clean            # Clean up all containers/images
+.\docker.ps1 seed             # Run seed data script
+.\docker.ps1 migrate          # Run database migrations
+```
+
+---
+
+### External Services Configuration
+
+#### PostgreSQL Options:
+- **Aiven**: Managed PostgreSQL ($15/month)
+- **Supabase**: 1GB free tier
+- **Neon**: 512MB free tier
+- **Railway**: Pay-as-you-go
+
+#### Redis Options:
+- **Upstash**: Free tier (10K commands/day, 256MB data)
+- **Redis Cloud**: Free tier (30MB)
+- **Render**: Built-in Redis with DB hosting
+
+---
+
+### Connecting to External Services
+
+**1. Get connection strings from provider**
+2. **Set environment variables on cloud platform**:
+   - Render: Render Dashboard → Environment
+   - Azure: Web App → Configuration → Application Settings
+   - Railway: Project → Variables
+3. **Deploy image from Docker Hub**
+4. **Verify connectivity**:
+   ```powershell
+   curl https://your-app-url/health
+   ```
+
 ## 📡 Tích hợp với OpenWeather API
 
 Dự án sử dụng OpenWeather API để lấy dữ liệu thời tiết thực tế:

@@ -1,0 +1,37 @@
+version: "3.9"
+
+# Production configuration - API only with external services
+# Database: Supabase PostgreSQL
+# Cache: Upstash Redis
+# No local postgres/redis - uses managed services
+
+name: weather-forecast-prod
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: weather-forecast-api-prod:latest
+    container_name: weather_api_prod
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env.prod
+    environment:
+      NODE_ENV: production
+    networks:
+      - weather_prod_network
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+
+networks:
+  weather_prod_network:
+    driver: bridge

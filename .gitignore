@@ -2,6 +2,8 @@ node_modules
 dist
 # Keep environment variables out of version control
 .env
+.env.prod
+.env.*.local
 
 /generated/prisma
 /prisma/migrations
@@ -18,3 +20,5 @@ OAUTH2_SETUP_GUIDE.md
 OAUTH2_COMPLETE_GUIDE.md
 OAUTH2_COMMON_ERRORS.md
 TOKEN_IMPLEMENTATION_GUIDE.md
+DOCKER_OPTIMIZATION.md
+DOCKER_README.md

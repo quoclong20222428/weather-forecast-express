@@ -1,10 +1,13 @@
 version: "3.9"
 
+# Project name - determines the prefix for all containers, volumes, and networks
+name: weather-forecast
+
 services:
   postgres:
-    image: postgres
+    image: postgres:16-alpine
     container_name: weather_postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
@@ -15,39 +18,67 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - weather_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DATABASE}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
 
   redis:
-    image: redis
+    image: redis:7-alpine
     container_name: weather_redis
-    restart: always
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - weather_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: weather-forecast-api:latest
     container_name: weather_api
-    restart: always
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5001:5001"
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?schema=public
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    command: >
-      sh -c "npx prisma migrate deploy &&
-             node dist/server.js"
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    networks:
+      - weather_network
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  weather_network:
+    driver: bridge

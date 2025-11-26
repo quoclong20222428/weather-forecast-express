@@ -41,7 +41,7 @@ export const githubCallbackController = async (req: Request, res: Response, next
     res.cookie("auth_token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" for cross-origin in production
       maxAge: 2 * 60 * 60 * 1000, // 2 hours
     });
 
@@ -49,7 +49,7 @@ export const githubCallbackController = async (req: Request, res: Response, next
     res.cookie("refresh_token", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" for cross-origin in production
       maxAge: 10 * 60 * 60 * 1000, // 10 hours
     });
 

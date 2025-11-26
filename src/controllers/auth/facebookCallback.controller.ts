@@ -6,7 +6,7 @@ export const facebookCallbackController = (req: Request, res: Response, next: Ne
     const user = req.user as any;
 
     if (!user) {
-      return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/login?error=auth_failed`);
+      return res.redirect(`${process.env.CLIENT_URL!}/login?error=auth_failed`);
     }
 
     // Generate Access Token (2 hours) and Refresh Token (10 hours)
@@ -37,7 +37,7 @@ export const facebookCallbackController = (req: Request, res: Response, next: Ne
     });
 
     // Redirect về client
-    res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/auth/callback?success=true`);
+    res.redirect(`${process.env.CLIENT_URL!}/login?success=true`);
   } catch (error) {
     next(error);
   }
