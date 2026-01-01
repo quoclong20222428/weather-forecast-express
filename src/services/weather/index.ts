@@ -1,5 +1,5 @@
 // Export tất cả weather services
-export { OpenWeatherResponse, DailyWeatherResponse } from "./types.js";
+export type { OpenWeatherResponse, DailyWeatherResponse } from "./types.js";
 export { getWeatherByLatLon } from "./getWeatherByLatLon.service.js";
 export { getDailyWeather } from "./getDailyWeather.service.js";
 export { saveCity } from "./saveCity.service.js";

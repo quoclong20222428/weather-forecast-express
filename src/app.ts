@@ -7,6 +7,8 @@ import cityRoutes from "./routes/city.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import dataDeletionRoutes from "./routes/data-deletion.routes.js";
 import { errorHandler, notFoundHandler, requestLogger } from "./middleware/index.js";
+import { healthCheck } from "./cron/health.cron.js";
+import { prisma } from "./config/db.js";
 
 dotenv.config();
 
@@ -33,9 +35,14 @@ app.get("/", (req: Request, res: Response) => {
 	res.send("Weather Forecast API is running");
 });
 
-// Health check endpoint for Docker
-app.get("/health", (req: Request, res: Response) => {
-	res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/health", async (req: Request, res: Response) => {
+	try {
+		await prisma.$queryRaw`SELECT 1`;
+		res.status(200).json({ status: "ok" });
+	}
+	catch (error) {
+		res.status(500).json({ status: "error", message: "Database connection failed" });
+	}
 });
 
 app.use("/api/auth", authRoutes);
@@ -44,5 +51,8 @@ app.use("/api/data", dataDeletionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+const url = process.env.BACKEND_URL || 'http://localhost:5001';
+healthCheck(url);
 
 export default app;
