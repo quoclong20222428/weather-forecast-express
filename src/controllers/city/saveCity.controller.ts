@@ -35,9 +35,9 @@ export const saveCity = async (req: AuthRequest, res: Response, next: NextFuncti
         // Nếu city mới được tạo, trả về status 201
         res.status(201).json(result);
     } catch (err) {
-        if (err instanceof Error) {
-            return next(new HttpError(400, err.message));
-        }
+        // Pass the error to the global errorHandler.
+        // Do NOT wrap infrastructure errors (Prisma, Redis, network) as 400 —
+        // those should surface as 500 so the client knows it was not a bad request.
         return next(err);
     }
 };

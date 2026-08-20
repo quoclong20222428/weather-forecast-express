@@ -52,8 +52,14 @@ export const saveCity = async (userId: string, lat: number, lon: number, name: s
   const cacheKey = `cities:saved:${userId}`;
   await deleteCache(cacheKey);
 
-  // 3. Tạo cache mới ngay lập tức (warm up cache)
-  await getSavedCities(userId);
+  // 3. Tạo cache mới ngay lập tức (warm up cache) — best-effort, không fail nếu lỗi
+  try {
+    await getSavedCities(userId);
+  } catch (cacheWarmupError) {
+    // Cache warm-up is non-critical. The city is already committed to the DB.
+    // Log and continue — the next read will rebuild the cache from the DB.
+    console.error('[saveCity] Cache warm-up failed (non-fatal):', cacheWarmupError);
+  }
 
   return {
     city: city,
