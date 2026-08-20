@@ -7,7 +7,6 @@ import cityRoutes from "./routes/city.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import dataDeletionRoutes from "./routes/data-deletion.routes.js";
 import { errorHandler, notFoundHandler, requestLogger } from "./middleware/index.js";
-import { healthCheck } from "./cron/health.cron.js";
 import { prisma } from "./config/db.js";
 
 dotenv.config();
@@ -52,7 +51,5 @@ app.use("/api/data", dataDeletionRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const url = process.env.BACKEND_URL || 'http://localhost:5001';
-healthCheck(url);
 
 export default app;
