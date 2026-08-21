@@ -36,11 +36,16 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       return next(new HttpError(401, "Authentication required. Please provide a valid token."));
     }
 
-    // Verify token
-    const secret: string = process.env.JWT_SECRET!;
-    const decoded = jwt.verify(token, secret) as { userId: string; email: string };
+    // Verify token bằng JWT_ACCESS_SECRET riêng (chống Refresh Token bị tráo đổi)
+    const secret: string = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET!;
+    const decoded = jwt.verify(token, secret) as { userId: string; email: string; type?: string };
 
-    // Gắn thông tin user vào request
+    // Từ chối nếu token không phải loại "access" (chống tráo Refresh Token vào API call)
+    if (decoded.type && decoded.type !== "access") {
+      return next(new HttpError(401, "Invalid token type"));
+    }
+
+    // Gắn thông tin user vào request (chỉ giữ các trường cần thiết)
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
